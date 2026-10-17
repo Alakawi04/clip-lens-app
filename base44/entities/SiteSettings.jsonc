@@ -43,6 +43,23 @@
       },
       "description": "Representative thumbnails shown in the gallery section."
     },
+    "particles_style": {
+      "type": "string",
+      "enum": [
+        "dots",
+        "youtube",
+        "like",
+        "views",
+        "mixed",
+        "custom"
+      ],
+      "default": "dots",
+      "description": "Shape of the ambient background particles: dots, YouTube logo, like, views, a mix of all, or a custom image."
+    },
+    "particles_image_url": {
+      "type": "string",
+      "description": "Custom particle image used when particles_style is custom."
+    },
     "texts": {
       "type": "object",
       "description": "Admin overrides for any text on the site, keyed as \"<lang>.<i18n key>\" (e.g. \"en.hero.title\")."

@@ -1,7 +1,8 @@
 import React from 'react';
-import { Check } from 'lucide-react';
+import { Check, Circle, Youtube, ThumbsUp, Eye, Layers, Image as ImageIcon } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import ImageField from '@/components/admin/ImageField';
 import { applyAccentColor } from '@/lib/SiteSettingsContext';
 import { useI18n } from '@/lib/i18n';
 
@@ -12,6 +13,15 @@ const PRESETS = [
   { name: 'Deep Red', value: '#B91C1C' },
   { name: 'Sunset', value: '#F97316' },
   { name: 'Violet', value: '#7C3AED' },
+];
+
+const PARTICLE_OPTIONS = [
+  { value: 'dots', icon: Circle, label: 'admin.particles.dots' },
+  { value: 'youtube', icon: Youtube, label: 'admin.particles.youtube' },
+  { value: 'like', icon: ThumbsUp, label: 'admin.particles.like' },
+  { value: 'views', icon: Eye, label: 'admin.particles.views' },
+  { value: 'mixed', icon: Layers, label: 'admin.particles.all' },
+  { value: 'custom', icon: ImageIcon, label: 'admin.particles.custom' },
 ];
 
 export default function AdminAppearance({ draft, set }) {
@@ -71,6 +81,43 @@ export default function AdminAppearance({ draft, set }) {
             {t('admin.appearance.accent')}
           </span>
         </div>
+      </section>
+
+      <section className="glass-panel rounded-3xl border border-border p-6">
+        <h3 className="font-display text-base font-bold">{t('admin.appearance.particles')}</h3>
+        <p className="mt-1 text-sm text-muted-foreground">{t('admin.appearance.particles.hint')}</p>
+
+        <div className="mt-4 flex flex-wrap gap-2.5">
+          {PARTICLE_OPTIONS.map((o) => {
+            const Icon = o.icon;
+            const active = (draft.particles_style || 'dots') === o.value;
+            return (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => set({ particles_style: o.value })}
+                className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-semibold transition-all duration-300 hover:-translate-y-0.5 ${
+                  active
+                    ? 'border-primary/60 bg-primary/10 text-primary'
+                    : 'border-border bg-card/60 text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-4 w-4" />
+                {t(o.label)}
+              </button>
+            );
+          })}
+        </div>
+
+        {(draft.particles_style || 'dots') === 'custom' && (
+          <div className="mt-5 max-w-sm">
+            <ImageField
+              label={t('admin.particles.image')}
+              value={draft.particles_image_url}
+              onChange={(v) => set({ particles_image_url: v })}
+            />
+          </div>
+        )}
       </section>
     </div>
   );

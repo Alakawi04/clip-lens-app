@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import { Play, Sparkles } from 'lucide-react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { Play, Sparkles, X } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 
@@ -30,6 +30,7 @@ export default function LensVisual({ className = '', size = 360 }) {
   const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
   const [hovered, setHovered] = useState(false);
   const [order, setOrder] = useState([0, 1, 2, 3]);
+  const [zoomed, setZoomed] = useState(null);
 
   const images = useMemo(() => {
     const raw = [settings.hero_image_url, ...(settings.gallery_images || [])].filter(Boolean);
@@ -48,12 +49,12 @@ export default function LensVisual({ className = '', size = 360 }) {
 
   // Auto-cycle: the front card slides out to the back of the deck. Paused on hover.
   useEffect(() => {
-    if (reduce || hovered || order.length < 2) return undefined;
+    if (reduce || hovered || zoomed !== null || order.length < 2) return undefined;
     const id = setInterval(() => {
       setOrder((prev) => [...prev.slice(1), prev[0]]);
     }, 4600);
     return () => clearInterval(id);
-  }, [reduce, hovered, order.length]);
+  }, [reduce, hovered, zoomed, order.length]);
 
   const onMove = (e) => {
     if (reduce) return;
@@ -117,7 +118,8 @@ export default function LensVisual({ className = '', size = 360 }) {
             return (
               <motion.div
                 key={imgIndex}
-                className="absolute left-1/2 top-1/2 aspect-video w-[86%] overflow-hidden rounded-2xl border border-border bg-card"
+                onClick={() => setZoomed(imgIndex)}
+                className="absolute left-1/2 top-1/2 aspect-video w-[86%] cursor-pointer overflow-hidden rounded-2xl border border-border bg-card"
                 initial={false}
                 animate={targetFor(pos)}
                 transition={SPRING}
@@ -172,6 +174,39 @@ export default function LensVisual({ className = '', size = 360 }) {
           </div>
         </motion.div>
       </div>
+
+      {/* Click a card to view it alone, enlarged, with a small X to go back. */}
+      <AnimatePresence>
+        {zoomed !== null && (
+          <motion.div
+            className="absolute inset-0 z-30 grid place-items-center rounded-3xl bg-background/70 backdrop-blur-md"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.35 }}
+            onClick={() => setZoomed(null)}
+          >
+            <motion.div
+              className="relative aspect-video w-[94%] overflow-hidden rounded-2xl border border-border shadow-float"
+              initial={{ scale: 0.82, y: 26, opacity: 0 }}
+              animate={{ scale: 1, y: 0, opacity: 1 }}
+              exit={{ scale: 0.88, y: 14, opacity: 0 }}
+              transition={SPRING}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <Image src={images[zoomed]} alt="" className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={() => setZoomed(null)}
+                aria-label="Close"
+                className="absolute end-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/80 text-foreground shadow-float backdrop-blur transition-transform duration-300 hover:scale-110 hover:rotate-90"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

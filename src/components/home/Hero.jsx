@@ -10,13 +10,6 @@ export default function Hero() {
   const { t } = useI18n();
   return (
     <section className="relative overflow-hidden">
-      {/* richer hero backdrop: brand halo, grid and corner glows */}
-      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-grid opacity-30 [mask-image:radial-gradient(60%_55%_at_50%_25%,black,transparent)]" />
-        <div className="absolute -top-36 start-1/2 h-96 w-[44rem] -translate-x-1/2 rounded-full bg-primary/20 blur-[130px]" />
-        <div className="absolute bottom-[-4rem] end-[-2rem] h-72 w-72 rounded-full bg-primary/12 blur-[100px]" />
-        <div className="absolute bottom-[-2rem] start-[-3rem] h-64 w-64 rounded-full bg-primary/10 blur-[90px]" />
-      </div>
       <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:py-20 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
