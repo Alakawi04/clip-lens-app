@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Sparkles, ArrowRight, Play } from 'lucide-react';
+import { Sparkles, Play } from 'lucide-react';
+import SparkleButton from '@/components/SparkleButton';
 import LensVisual from '@/components/LensVisual';
 import { useI18n } from '@/lib/i18n';
 
@@ -27,14 +28,9 @@ export default function Hero() {
             {t('hero.subtitle')}
           </p>
           <div className="mt-7 flex flex-col items-center gap-3 sm:flex-row lg:justify-start">
-            <Link
-              to="/analyze"
-              className="btn-3d group inline-flex w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-float sm:w-auto"
-            >
-              <Sparkles className="h-4 w-4" />
+            <SparkleButton to="/analyze" className="w-full sm:w-auto">
               {t('hero.cta')}
-              <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
-            </Link>
+            </SparkleButton>
             <Link
               to="/analyze"
               className="btn-3d inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3.5 text-sm font-semibold text-foreground hover:bg-card sm:w-auto"
