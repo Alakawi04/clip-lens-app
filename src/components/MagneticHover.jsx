@@ -2,19 +2,21 @@ import { useEffect } from 'react';
 import { useReducedMotion } from 'framer-motion';
 
 const SELECTOR = '.hover-3d, .hover-3d-sm, .fly-3d, .btn-3d';
-const EASE = 0.13;
+const EASE = 0.16;
 
 // Pointer-follow 3D lift for anything with a hover class: while the cursor is
-// over an element it leans toward it (rotateX/rotateY from the cursor offset)
-// and rises slightly; when the pointer leaves, it glides back smoothly via a
-// lerped rAF loop instead of snapping. Decorative only; off for reduced motion.
+// over an element it flies toward it (tilt from the cursor offset, lift, depth
+// and a slight scale) and keeps tracking the pointer; when the pointer leaves,
+// it glides back smoothly via a lerped rAF loop instead of snapping. The tilt
+// is primed right from the mouseover position so the flight starts instantly.
+// Decorative only; off for reduced motion.
 export default function MagneticHover() {
   const reduce = useReducedMotion();
 
   useEffect(() => {
     if (reduce) return undefined;
 
-    const items = new Map(); // el -> { rx, ry, lift, sc, trx, try_, tlift, tsc, active }
+    const items = new Map(); // el -> { rx, ry, lift, z, sc, trx, try_, tlift, tz, tsc, active }
     let current = null;
     let raf = 0;
 
@@ -27,14 +29,18 @@ export default function MagneticHover() {
         it.rx += (it.trx - it.rx) * EASE;
         it.ry += (it.try_ - it.ry) * EASE;
         it.lift += (it.tlift - it.lift) * EASE;
+        it.z += (it.tz - it.z) * EASE;
         it.sc += (it.tsc - it.sc) * EASE;
-        el.style.transform = `perspective(900px) translateY(${it.lift.toFixed(2)}px) rotateX(${it.rx.toFixed(2)}deg) rotateY(${it.ry.toFixed(2)}deg) scale(${it.sc.toFixed(3)})`;
+        el.style.transform =
+          `perspective(900px) translateY(${it.lift.toFixed(2)}px) translateZ(${it.z.toFixed(1)}px) ` +
+          `rotateX(${it.rx.toFixed(2)}deg) rotateY(${it.ry.toFixed(2)}deg) scale(${it.sc.toFixed(3)})`;
 
         const settled =
           !it.active &&
           Math.abs(it.rx) < 0.05 &&
           Math.abs(it.ry) < 0.05 &&
           Math.abs(it.lift) < 0.05 &&
+          Math.abs(it.z) < 0.05 &&
           Math.abs(it.sc - 1) < 0.005;
         if (settled) {
           el.style.transform = '';
@@ -46,16 +52,21 @@ export default function MagneticHover() {
       else raf = 0;
     };
 
+    const aim = (el, it, cx, cy) => {
+      const r = el.getBoundingClientRect();
+      const px = (cx - r.left) / r.width - 0.5;
+      const py = (cy - r.top) / r.height - 0.5;
+      it.try_ = px * 18;
+      it.trx = -py * 18;
+      it.tlift = -12;
+      it.tz = 30;
+      it.tsc = 1.05;
+    };
+
     const onMove = (e) => {
       const it = items.get(current);
       if (!it) return;
-      const r = current.getBoundingClientRect();
-      const px = (e.clientX - r.left) / r.width - 0.5;
-      const py = (e.clientY - r.top) / r.height - 0.5;
-      it.try_ = px * 14;
-      it.trx = -py * 14;
-      it.tlift = -7;
-      it.tsc = 1.03;
+      aim(current, it, e.clientX, e.clientY);
       ensure();
     };
 
@@ -66,6 +77,7 @@ export default function MagneticHover() {
       it.trx = 0;
       it.try_ = 0;
       it.tlift = 0;
+      it.tz = 0;
       it.tsc = 1;
       ensure();
     };
@@ -82,10 +94,12 @@ export default function MagneticHover() {
       if (!t) return;
       current = t;
       if (!items.has(t)) {
-        items.set(t, { rx: 0, ry: 0, lift: 0, sc: 1, trx: 0, try_: 0, tlift: 0, tsc: 1, active: true });
+        items.set(t, { rx: 0, ry: 0, lift: 0, z: 0, sc: 1, trx: 0, try_: 0, tlift: 0, tz: 0, tsc: 1, active: true });
       } else {
         items.get(t).active = true;
       }
+      // prime the flight from where the pointer entered
+      aim(t, items.get(t), e.clientX, e.clientY);
       t.addEventListener('mousemove', onMove);
       t.addEventListener('mouseleave', onLeave);
       ensure();

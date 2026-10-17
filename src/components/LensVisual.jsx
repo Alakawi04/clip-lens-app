@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Play, Sparkles, X } from 'lucide-react';
 import { Image } from '@/components/ui/image';
@@ -173,40 +174,48 @@ export default function LensVisual({ className = '', size = 360 }) {
             <div className="text-lg font-extrabold brand-text leading-none">87</div>
           </div>
         </motion.div>
-      </div>
+        </div>
 
-      {/* Click a card to view it alone, enlarged, with a small X to go back. */}
-      <AnimatePresence>
-        {zoomed !== null && (
-          <motion.div
-            className="absolute inset-0 z-30 grid place-items-center rounded-3xl bg-background/70 backdrop-blur-md"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.35 }}
-            onClick={() => setZoomed(null)}
-          >
+        {/* Click a card to open it fullscreen, with a small X to go back.
+          Portaled to body so it escapes the perspective container. */}
+        {createPortal(
+        <AnimatePresence>
+          {zoomed !== null && (
             <motion.div
-              className="relative aspect-video w-[94%] overflow-hidden rounded-2xl border border-border shadow-float"
-              initial={{ scale: 0.82, y: 26, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.88, y: 14, opacity: 0 }}
-              transition={SPRING}
-              onClick={(e) => e.stopPropagation()}
+              className="fixed inset-0 z-50 grid place-items-center bg-background/85 p-6 backdrop-blur-lg"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              onClick={() => setZoomed(null)}
             >
-              <Image src={images[zoomed]} alt="" className="h-full w-full object-cover" />
-              <button
-                type="button"
-                onClick={() => setZoomed(null)}
-                aria-label="Close"
-                className="absolute end-3 top-3 grid h-9 w-9 place-items-center rounded-full bg-background/80 text-foreground shadow-float backdrop-blur transition-transform duration-300 hover:scale-110 hover:rotate-90"
+              <motion.div
+                className="relative overflow-hidden rounded-2xl border border-border shadow-float"
+                initial={{ scale: 0.85, y: 30, opacity: 0 }}
+                animate={{ scale: 1, y: 0, opacity: 1 }}
+                exit={{ scale: 0.9, y: 16, opacity: 0 }}
+                transition={SPRING}
+                onClick={(e) => e.stopPropagation()}
               >
-                <X className="h-4 w-4" />
-              </button>
+                <Image
+                  src={images[zoomed]}
+                  alt=""
+                  className="max-h-[84vh] w-auto max-w-[min(64rem,90vw)] object-contain"
+                />
+                <button
+                  type="button"
+                  onClick={() => setZoomed(null)}
+                  aria-label="Close"
+                  className="absolute end-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-background/80 text-foreground shadow-float backdrop-blur transition-transform duration-300 hover:scale-110 hover:rotate-90"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </motion.div>
             </motion.div>
-          </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
         )}
-      </AnimatePresence>
-    </div>
-  );
-}
+        </div>
+        );
+        }

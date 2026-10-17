@@ -8,6 +8,7 @@ import AdminOverview from '@/components/admin/AdminOverview';
 import AdminContent from '@/components/admin/AdminContent';
 import AdminAppearance from '@/components/admin/AdminAppearance';
 import AdminTexts from '@/components/admin/AdminTexts';
+import ExportCodeButton from '@/components/admin/ExportCodeButton';
 
 export default function Admin() {
   const { t } = useI18n();
@@ -91,6 +92,11 @@ export default function Admin() {
         ) : (
           <AdminAppearance draft={draft} set={set} />
         )}
+      </div>
+
+      {/* quiet corner link — download the code & run the site locally */}
+      <div className="mt-10 flex justify-center">
+        <ExportCodeButton />
       </div>
     </div>
   );

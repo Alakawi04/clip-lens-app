@@ -385,6 +385,7 @@
 /* ---- Sparkle CTA button (adapted from Uiverse, themed to ClipLens) ---- */
 .btn-sparkle {
   --spark-bg: hsl(var(--primary));
+  --spark-bg: color-mix(in srgb, hsl(var(--primary)) 72%, black);
   --border_radius: 9999px;
   --transtion: 0.45s cubic-bezier(0.22, 1, 0.36, 1);
 
