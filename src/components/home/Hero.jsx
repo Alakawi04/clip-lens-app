@@ -17,10 +17,10 @@ export default function Hero() {
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
           className="text-center lg:text-start">
           
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-soft backdrop-blur hidden">
-            <Sparkles className="h-3.5 w-3.5 text-primary" />
-            {t('hero.badge')}
-          </span>
+          
+
+
+          
           <h1 className="fly-3d mt-5 text-balance font-display text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
             {t('hero.title')}
           </h1>
