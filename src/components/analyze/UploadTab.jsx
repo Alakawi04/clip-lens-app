@@ -127,7 +127,7 @@ export default function UploadTab({ onStart }) {
               : 'border-border bg-card/40 hover:border-primary/50 hover:bg-card/70'
           } focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
         >
-          <span className="relative grid h-20 w-20 place-items-center rounded-3xl brand-gradient text-white shadow-float transition-transform group-hover:scale-105">
+          <span className="relative grid h-20 w-20 place-items-center rounded-3xl brand-gradient text-white shadow-float transition-transform sm:group-hover:scale-105">
             <UploadCloud className="h-9 w-9" />
             <span className="absolute -inset-2 -z-10 rounded-3xl bg-primary/20 blur-xl" />
           </span>

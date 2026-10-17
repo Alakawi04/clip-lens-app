@@ -382,6 +382,20 @@
   }
 }
 
+/* ---- Touch & small screens: no pointer-driven fly/zoom effects ---- */
+@media (hover: none), (max-width: 640px) {
+  .hover-3d:hover,
+  .hover-3d-sm:hover,
+  .btn-3d:hover {
+    transform: none;
+    filter: none;
+  }
+  .hover-3d:active,
+  .hover-3d-sm:active {
+    transform: scale(0.98);
+  }
+}
+
 /* ---- Sparkle CTA button (adapted from Uiverse, themed to ClipLens) ---- */
 .btn-sparkle {
   --spark-bg: hsl(var(--primary));

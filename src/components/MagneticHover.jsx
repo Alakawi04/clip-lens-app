@@ -15,6 +15,8 @@ export default function MagneticHover() {
 
   useEffect(() => {
     if (reduce) return undefined;
+    // Only run for real pointer devices — no cursor-following on touch.
+    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return undefined;
 
     const items = new Map(); // el -> { rx, ry, lift, z, sc, trx, try_, tlift, tz, tsc, active }
     let current = null;

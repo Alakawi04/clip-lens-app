@@ -53,7 +53,7 @@ export default function ToolCards() {
                   <Image
                     src={c.image}
                     alt=""
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full object-cover transition-transform duration-500 sm:group-hover:scale-105"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   <span className="absolute start-4 top-4 grid h-12 w-12 place-items-center rounded-2xl bg-white/90 text-primary shadow-float backdrop-blur">
