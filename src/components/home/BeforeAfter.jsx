@@ -12,7 +12,7 @@ export default function BeforeAfter() {
     <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-10">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('preview.title')}</h2>
+          <h2 className="fly-3d font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('preview.title')}</h2>
           <p className="mt-2 text-muted-foreground">{t('preview.subtitle')}</p>
         </div>
         <div className="mt-8 grid items-center gap-5 sm:grid-cols-[1fr_auto_1fr]">

@@ -14,11 +14,11 @@ const FALLBACKS = [
 // Stack slots (pos 0 = front). x/y in % of card size, z in px depth.
 const SLOTS = [
   { x: 0, y: 0, z: 70, r: 0, s: 1, o: 1 },
-  { x: -15, y: -13, z: -30, r: -9, s: 0.88, o: 0.95 },
-  { x: 16, y: 12, z: -70, r: 8, s: 0.8, o: 0.9 },
-  { x: -24, y: 18, z: -100, r: -13, s: 0.73, o: 0.85 },
+  { x: -18, y: -16, z: -30, r: -10, s: 0.88, o: 0.95 },
+  { x: 19, y: 14, z: -70, r: 9, s: 0.8, o: 0.9 },
+  { x: -29, y: 22, z: -100, r: -14, s: 0.73, o: 0.85 },
 ];
-const SPRING = { type: 'spring', stiffness: 65, damping: 17, opacity: { duration: 0.5 } };
+const SPRING = { type: 'spring', stiffness: 52, damping: 20, opacity: { duration: 0.55 } };
 
 // A lens-inspired card deck: cards cycle automatically (the front card slides
 // out and tucks behind the deck) and spread apart on hover. Pointer tilt is
@@ -67,7 +67,7 @@ export default function LensVisual({ className = '', size = 360 }) {
 
   const targetFor = (pos) => {
     const p = SLOTS[Math.min(pos, SLOTS.length - 1)];
-    const m = hovered && pos > 0 ? 2.2 : 1;
+    const m = hovered && pos > 0 ? 2.6 : 1;
     return {
       x: `${-50 + p.x * m}%`,
       y: `${-50 + p.y * m}%`,

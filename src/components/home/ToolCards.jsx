@@ -31,7 +31,7 @@ export default function ToolCards() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-2xl text-center">
-        <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('tools.title')}</h2>
+        <h2 className="fly-3d font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('tools.title')}</h2>
         <p className="mt-2 text-muted-foreground">{t('tools.subtitle')}</p>
       </div>
       <div className="mt-8 grid gap-5 sm:grid-cols-2">

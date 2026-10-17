@@ -351,7 +351,7 @@
     will-change: transform;
   }
   .hover-3d:hover {
-    transform: perspective(1000px) translate3d(0, -8px, 0) rotateX(6deg) scale(1.02);
+    transform: perspective(1000px) translate3d(0, -12px, 36px) rotateX(7deg) scale(1.03);
     box-shadow:
       0 30px 60px -24px hsl(0 0% 0% / 0.75),
       0 0 0 1px hsl(var(--primary) / 0.35),
@@ -366,7 +366,7 @@
     transform-style: preserve-3d;
   }
   .hover-3d-sm:hover {
-    transform: perspective(800px) translate3d(0, -5px, 0) rotateX(8deg) scale(1.07);
+    transform: perspective(800px) translate3d(0, -8px, 26px) rotateX(9deg) scale(1.08);
     box-shadow:
       0 18px 34px -16px hsl(0 0% 0% / 0.7),
       0 0 0 1px hsl(var(--primary) / 0.35);
@@ -384,7 +384,7 @@
 
 /* ---- Sparkle CTA button (adapted from Uiverse, themed to ClipLens) ---- */
 .btn-sparkle {
-  --spark-bg: hsl(var(--charcoal));
+  --spark-bg: hsl(0 0% 15%);
   --border_radius: 9999px;
   --transtion: 0.3s ease-in-out;
 
@@ -398,7 +398,7 @@
 
   transform-origin: center;
 
-  padding: 0.7rem 1.5rem;
+  padding: 0.85rem 1.75rem;
   background-color: transparent;
 
   border: none;
@@ -507,7 +507,7 @@
   position: relative;
   z-index: 10;
 
-  width: 1.3rem;
+  width: 1.5rem;
 }
 
 .btn-sparkle .sparkle .path {
@@ -562,7 +562,20 @@
   );
   background-clip: text;
 
-  font-size: 0.9rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: transparent;
+}
+
+/* ---- 3D fly hover for any element (titles, chips, inline bits) ---- */
+.fly-3d {
+  transform-origin: center;
+  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), text-shadow 0.45s ease;
+  will-change: transform;
+}
+.fly-3d:hover {
+  transform: perspective(900px) translateY(-7px) translateZ(40px) rotateX(9deg) scale(1.04);
+  text-shadow:
+    0 16px 34px hsl(var(--primary) / 0.4),
+    0 0 26px hsl(var(--primary) / 0.28);
 }

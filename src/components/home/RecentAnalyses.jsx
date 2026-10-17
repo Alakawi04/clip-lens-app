@@ -31,7 +31,7 @@ export default function RecentAnalyses() {
     <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('recent.title')}</h2>
+          <h2 className="fly-3d font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('recent.title')}</h2>
           <p className="mt-2 text-muted-foreground">{t('recent.subtitle')}</p>
         </div>
         {items && items.length > 0 && (

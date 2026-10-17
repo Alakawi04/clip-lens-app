@@ -19,7 +19,7 @@ export default function SampleThumbnails() {
           <Sparkles className="h-3.5 w-3.5 text-primary" />
           {t('gallery.tag')}
         </span>
-        <h2 className="mt-4 font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('gallery.title')}</h2>
+        <h2 className="fly-3d mt-4 font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('gallery.title')}</h2>
         <p className="mt-2 text-muted-foreground">{t('gallery.subtitle')}</p>
       </div>
 

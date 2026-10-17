@@ -14,7 +14,7 @@ export default function Steps() {
   return (
     <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-2xl text-center">
-        <h2 className="font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('steps.title')}</h2>
+        <h2 className="fly-3d font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('steps.title')}</h2>
         <p className="mt-2 text-muted-foreground">{t('steps.subtitle')}</p>
       </div>
       <div className="relative mt-10 grid gap-6 sm:grid-cols-3">
