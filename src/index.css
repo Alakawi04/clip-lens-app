@@ -1,0 +1,383 @@
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 30 40% 99%;
+    --foreground: 0 0% 9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 9%;
+    --primary: 0 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 6% 96%;
+    --secondary-foreground: 0 0% 15%;
+    --muted: 0 6% 95%;
+    --muted-foreground: 0 3% 42%;
+    --accent: 0 90% 96%;
+    --accent-foreground: 0 80% 42%;
+    --destructive: 0 84% 50%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 6% 90%;
+    --input: 0 6% 90%;
+    --ring: 0 100% 50%;
+    --chart-1: 0 100% 50%;
+    --chart-2: 350 70% 55%;
+    --chart-3: 197 80% 50%;
+    --chart-4: 43 80% 55%;
+    --chart-5: 270 65% 60%;
+    --radius: 1rem;
+    --font-heading: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-body: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-display: "Plus Jakarta Sans", ui-sans-serif, system-ui, sans-serif;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    --font-arabic: "IBM Plex Sans Arabic", "Plus Jakarta Sans", system-ui, sans-serif;
+    --brand: 0 100% 50%;
+    --brand-soft: 0 100% 96%;
+    --charcoal: 0 0% 8%;
+    --surface: 0 0% 100%;
+    --surface-elevated: 0 0% 100%;
+    --glow: 0 100% 50%;
+  }
+
+  .dark {
+    --background: 0 0% 4%;
+    --foreground: 0 0% 97%;
+    --card: 0 0% 7%;
+    --card-foreground: 0 0% 97%;
+    --popover: 0 0% 7%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 0 100% 50%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 93%;
+    --muted: 0 0% 11%;
+    --muted-foreground: 0 0% 63%;
+    --accent: 0 0% 13%;
+    --accent-foreground: 0 90% 72%;
+    --destructive: 0 90% 55%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 16%;
+    --input: 0 0% 18%;
+    --ring: 0 100% 50%;
+    --chart-1: 0 100% 50%;
+    --chart-2: 350 80% 62%;
+    --chart-3: 197 80% 60%;
+    --chart-4: 43 80% 60%;
+    --chart-5: 270 70% 68%;
+    --brand: 0 100% 50%;
+    --brand-soft: 0 70% 14%;
+    --charcoal: 0 0% 6%;
+    --surface: 0 0% 7%;
+    --surface-elevated: 0 0% 10%;
+    --glow: 0 100% 50%;
+  }
+
+  /* Arabic font + RTL */
+  [dir="rtl"] {
+    --font-heading: var(--font-arabic);
+    --font-body: var(--font-arabic);
+    --font-display: var(--font-arabic);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 6.5rem;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+    overflow-x: hidden;
+  }
+
+  ::selection {
+    background: hsl(var(--primary) / 0.25);
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .glass {
+    background: hsl(var(--card) / 0.6);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+  }
+
+  /* Heavier glass panel with an inset highlight, for cards and dashboards. */
+  .glass-panel {
+    background: linear-gradient(180deg, hsl(var(--card) / 0.82), hsl(var(--card) / 0.55));
+    backdrop-filter: blur(24px) saturate(170%);
+    -webkit-backdrop-filter: blur(24px) saturate(170%);
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.06),
+      0 20px 60px -24px hsl(0 0% 0% / 0.7);
+  }
+
+  .red-glow {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.3), 0 0 60px -12px hsl(var(--primary) / 0.6);
+  }
+
+  .card-elevated {
+    background: hsl(var(--card));
+    box-shadow:
+      0 1px 2px hsl(0 0% 0% / 0.04),
+      0 8px 24px hsl(0 0% 0% / 0.06),
+      0 1px 0 hsl(0 0% 100% / 0.6) inset;
+  }
+  .dark .card-elevated {
+    box-shadow:
+      0 1px 2px hsl(0 0% 0% / 0.3),
+      0 8px 30px hsl(0 0% 0% / 0.4),
+      0 1px 0 hsl(0 0% 100% / 0.05) inset;
+  }
+
+  .brand-gradient {
+    background-image: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(0 92% 40%) 100%);
+  }
+
+  .brand-text {
+    background-image: linear-gradient(120deg, hsl(var(--primary)) 0%, hsl(0 95% 64%) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .glow-ring {
+    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.25), 0 0 40px hsl(var(--glow) / 0.25);
+  }
+
+  .shadow-soft {
+    box-shadow: 0 4px 20px hsl(0 0% 0% / 0.06);
+  }
+  .dark .shadow-soft {
+    box-shadow: 0 4px 24px hsl(0 0% 0% / 0.5);
+  }
+
+  .shadow-float {
+    box-shadow: 0 20px 50px -12px hsl(0 0% 0% / 0.18), 0 8px 16px -4px hsl(0 0% 0% / 0.08);
+  }
+  .dark .shadow-float {
+    box-shadow: 0 24px 60px -16px hsl(0 0% 0% / 0.7), 0 8px 20px -6px hsl(0 0% 0% / 0.6);
+  }
+
+  .bg-grid {
+    background-image:
+      radial-gradient(hsl(var(--foreground) / 0.06) 1px, transparent 1px);
+    background-size: 22px 22px;
+  }
+
+  .perspective {
+    perspective: 1200px;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.001ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.001ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@layer utilities {
+  @keyframes float-y {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+  }
+  .animate-float-y {
+    animation: float-y 6s ease-in-out infinite;
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.55; }
+  }
+  .animate-pulse-soft {
+    animation: pulse-soft 2.4s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+  }
+  .animate-shimmer {
+    background-size: 200% 100%;
+    animation: shimmer 1.8s linear infinite;
+  }
+
+  @keyframes spin-slow {
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 14s linear infinite;
+  }
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-rise {
+    animation: rise 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  @keyframes drift-a {
+    0%, 100% { transform: translate3d(-50%, 0, 0) scale(1); }
+    50% { transform: translate3d(-46%, -4%, 0) scale(1.1); }
+  }
+  .animate-drift-a {
+    animation: drift-a 24s ease-in-out infinite;
+  }
+
+  @keyframes drift-b {
+    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+    50% { transform: translate3d(6%, 5%, 0) scale(1.12); }
+  }
+  .animate-drift-b {
+    animation: drift-b 30s ease-in-out infinite;
+  }
+
+  @keyframes spin-slow {
+    to { transform: rotate(360deg); }
+  }
+  .animate-spin-slow {
+    animation: spin-slow 70s linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-drift-a,
+    .animate-drift-b,
+    .animate-spin-slow {
+      animation: none;
+    }
+  }
+}
+
+@layer utilities {
+  /* ---- Site-wide ambient background ---- */
+  .bg-aurora {
+    background-image:
+      radial-gradient(60rem 40rem at 10% -12%, hsl(var(--primary) / 0.3), transparent 62%),
+      radial-gradient(52rem 36rem at 92% 2%, hsl(var(--primary) / 0.22), transparent 64%),
+      radial-gradient(48rem 34rem at 50% 110%, hsl(var(--primary) / 0.16), transparent 62%);
+  }
+
+  .bg-vignette {
+    background: radial-gradient(125% 95% at 50% 30%, transparent 52%, hsl(var(--background) / 0.92) 100%);
+  }
+
+  /* Deep studio wash: one soft brand halo at the top, one faint anchor glow
+     bottom-right. Deliberately dim — content stays the brightest thing. */
+  .bg-studio {
+    background-image:
+      radial-gradient(72rem 46rem at 50% -16%, hsl(var(--primary) / 0.13), transparent 62%),
+      radial-gradient(52rem 36rem at 88% 110%, hsl(var(--primary) / 0.07), transparent 60%);
+  }
+
+  /* Fine film grain — texture with no added brightness. */
+  .bg-grain {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23g)'/%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  /* ---- Drifting motes (positions driven per frame so they react to the pointer) ---- */
+  .mote {
+    position: absolute;
+    top: 0;
+    left: 0;
+    border-radius: 9999px;
+    opacity: 0;
+    will-change: transform, opacity;
+    backface-visibility: hidden;
+  }
+
+  /* ---- Slim, brand-tinted scrollbar ---- */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.35) transparent;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--primary) / 0.3);
+    border: 2px solid transparent;
+    border-radius: 9999px;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: hsl(var(--primary) / 0.55);
+  }
+
+  /* ---- 3D hover system ---- */
+  .hover-3d,
+  .hover-3d-sm,
+  .btn-3d {
+    transition:
+      transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.4s ease,
+      filter 0.3s ease;
+  }
+
+  .hover-3d {
+    transform-style: preserve-3d;
+    will-change: transform;
+  }
+  .hover-3d:hover {
+    transform: perspective(1000px) translate3d(0, -8px, 0) rotateX(6deg) scale(1.02);
+    box-shadow:
+      0 30px 60px -24px hsl(0 0% 0% / 0.75),
+      0 0 0 1px hsl(var(--primary) / 0.35),
+      0 0 48px -14px hsl(var(--primary) / 0.55);
+    border-color: hsl(var(--primary) / 0.45);
+  }
+  .hover-3d:active {
+    transform: perspective(1000px) translate3d(0, -2px, 0) scale(0.99);
+  }
+
+  .hover-3d-sm {
+    transform-style: preserve-3d;
+  }
+  .hover-3d-sm:hover {
+    transform: perspective(800px) translate3d(0, -5px, 0) rotateX(8deg) scale(1.07);
+    box-shadow:
+      0 18px 34px -16px hsl(0 0% 0% / 0.7),
+      0 0 0 1px hsl(var(--primary) / 0.35);
+  }
+
+  .btn-3d:hover {
+    transform: translateY(-2px) scale(1.03);
+    box-shadow: 0 18px 34px -12px hsl(var(--primary) / 0.6);
+    filter: brightness(1.08);
+  }
+  .btn-3d:active {
+    transform: translateY(0) scale(0.96);
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "name": "SiteSettings",
+  "type": "object",
+  "properties": {
+    "brand_name": {
+      "type": "string",
+      "default": "ClipLens",
+      "description": "Brand name shown next to the logo mark."
+    },
+    "logo_image_url": {
+      "type": "string",
+      "description": "Optional logo image that replaces the default mark."
+    },
+    "accent_color": {
+      "type": "string",
+      "default": "#FF0000",
+      "description": "Accent color (hex) applied across the whole site."
+    },
+    "hero_image_url": {
+      "type": "string",
+      "description": "Main hero visual image."
+    },
+    "tool_analyze_image_url": {
+      "type": "string",
+      "description": "Image used on the Analyze tool card."
+    },
+    "tool_review_image_url": {
+      "type": "string",
+      "description": "Image used on the Review tool card."
+    },
+    "before_image_url": {
+      "type": "string",
+      "description": "Image used in the before/after preview."
+    },
+    "after_image_url": {
+      "type": "string",
+      "description": "Image used in the before/after preview."
+    },
+    "gallery_images": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Representative thumbnails shown in the gallery section."
+    },
+    "texts": {
+      "type": "object",
+      "description": "Admin overrides for any text on the site, keyed as \"<lang>.<i18n key>\" (e.g. \"en.hero.title\")."
+    }
+  },
+  "required": [],
+  "rls": {
+    "read": {},
+    "create": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

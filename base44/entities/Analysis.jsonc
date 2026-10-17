@@ -1,0 +1,100 @@
+{
+  "name": "Analysis",
+  "type": "object",
+  "properties": {
+    "source_type": {
+      "type": "string",
+      "enum": [
+        "upload",
+        "youtube"
+      ],
+      "description": "Whether the analysis came from an uploaded MP4 or a pasted YouTube link."
+    },
+    "source_label": {
+      "type": "string",
+      "description": "Display name for the source: file name or video title / URL."
+    },
+    "source_url": {
+      "type": "string",
+      "description": "Original YouTube URL when source_type is youtube, otherwise empty."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "uploading",
+        "scenes",
+        "titles",
+        "preparing",
+        "completed",
+        "failed"
+      ],
+      "default": "uploading",
+      "description": "Current stage of the analysis pipeline."
+    },
+    "progress": {
+      "type": "number",
+      "description": "0-100 progress percentage through the pipeline."
+    },
+    "score": {
+      "type": "number",
+      "description": "Overall appeal score 0-100 shown to the user."
+    },
+    "summary": {
+      "type": "string",
+      "description": "Short plain-language summary of the assessment."
+    },
+    "thumbnail_url": {
+      "type": "string",
+      "description": "URL of the suggested thumbnail image."
+    },
+    "title_suggestions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "recommended": {
+            "type": "boolean"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Generated title suggestions with a recommended flag and rationale."
+    },
+    "improvements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Practical improvement notes ordered by impact."
+    },
+    "duration_seconds": {
+      "type": "number",
+      "description": "Video duration in seconds when known."
+    },
+    "error_message": {
+      "type": "string",
+      "description": "Failure reason when status is failed."
+    }
+  },
+  "required": [
+    "source_type",
+    "source_label",
+    "status"
+  ]
+}
