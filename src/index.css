@@ -398,7 +398,7 @@
 
   transform-origin: center;
 
-  padding: 1rem 2rem;
+  padding: 0.7rem 1.5rem;
   background-color: transparent;
 
   border: none;
@@ -425,7 +425,9 @@
     inset 0 0.5px hsl(0, 0%, 100%),
     inset 0 -1px 2px 0 hsl(0, 0%, 0%),
     0px 4px 10px -4px hsla(0 0% 0% / calc(1 - var(--active, 0))),
-    0 0 0 calc(var(--active, 0) * 0.375rem) hsl(var(--primary) / 0.75);
+    0 0 0 1px hsl(var(--primary) / 0.55),
+    0 0 26px -6px hsl(var(--primary) / calc(0.45 + var(--active, 0) * 0.45)),
+    0 0 0 calc(var(--active, 0) * 0.375rem) hsl(var(--primary) / 0.8);
 
   transition: all var(--transtion);
   z-index: 0;
@@ -447,7 +449,7 @@
     radial-gradient(at 22% 91%, hsl(0 80% 45%) 0px, transparent 50%);
   background-position: top;
 
-  opacity: var(--active, 0);
+  opacity: calc(0.16 + var(--active, 0) * 0.84);
   border-radius: var(--border_radius);
   transition: opacity var(--transtion);
   z-index: 2;
@@ -505,7 +507,7 @@
   position: relative;
   z-index: 10;
 
-  width: 1.75rem;
+  width: 1.3rem;
 }
 
 .btn-sparkle .sparkle .path {
@@ -560,7 +562,7 @@
   );
   background-clip: text;
 
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 600;
   color: transparent;
 }
