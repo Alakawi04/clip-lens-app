@@ -568,15 +568,10 @@
   color: transparent;
 }
 
-/* ---- 3D fly hover for any element (titles, chips, inline bits) ---- */
+/* ---- 3D fly hover: opt-in only (interactive cards, chips, buttons) ----
+   Standalone text (headings) intentionally gets no hover effect. */
 .fly-3d {
   transform-origin: center;
   transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), text-shadow 0.45s ease;
   will-change: transform;
-}
-.fly-3d:hover {
-  transform: perspective(900px) translateY(-7px) translateZ(40px) rotateX(9deg) scale(1.04);
-  text-shadow:
-    0 16px 34px hsl(var(--primary) / 0.4),
-    0 0 26px hsl(var(--primary) / 0.28);
 }

@@ -89,8 +89,8 @@ export default function LensVisual({ className = '', size = 360 }) {
         setTilt({ rx: 0, ry: 0 });
         setHovered(false);
       }}
-      className={`perspective select-none ${className}`}
-      style={{ width: size, height: size }}
+      className={`perspective select-none aspect-square w-full ${className}`}
+      style={{ maxWidth: size }}
     >
       <div className="preserve-3d h-full w-full" style={{ transform: `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)` }}>
         <motion.div
