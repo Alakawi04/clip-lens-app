@@ -15,9 +15,9 @@ export default function Hero() {
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-          className="text-center lg:text-start"
-        >
-          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-soft backdrop-blur">
+          className="text-center lg:text-start">
+          
+          <span className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3.5 py-1.5 text-xs font-medium text-muted-foreground shadow-soft backdrop-blur hidden">
             <Sparkles className="h-3.5 w-3.5 text-primary" />
             {t('hero.badge')}
           </span>
@@ -33,8 +33,8 @@ export default function Hero() {
             </SparkleButton>
             <Link
               to="/analyze"
-              className="btn-3d inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3.5 text-sm font-semibold text-foreground hover:bg-card sm:w-auto"
-            >
+              className="btn-3d inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3.5 text-sm font-semibold text-foreground hover:bg-card sm:w-auto">
+              
               <Play className="h-4 w-4 fill-current" />
               {t('hero.secondary')}
             </Link>
@@ -46,11 +46,11 @@ export default function Hero() {
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          className="flex justify-center lg:justify-end"
-        >
+          className="flex justify-center lg:justify-end">
+          
           <LensVisual size={380} />
         </motion.div>
       </div>
-    </section>
-  );
+    </section>);
+
 }
