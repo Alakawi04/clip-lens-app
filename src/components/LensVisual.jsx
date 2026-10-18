@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useSpring } from 'framer-motion';
-import { Play, Sparkles, X } from 'lucide-react';
+import { Play, TrendingUp, Timer, X } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
+import { useI18n } from '@/lib/i18n';
 
 const FALLBACKS = [
   'https://images.unsplash.com/photo-1493612276216-ee392551f8a4?auto=format&fit=crop&w=900&q=80',
@@ -20,7 +21,7 @@ const SLOTS = [
   { x: -38, y: 30, z: -145, r: -18, s: 0.7, o: 0.85 },
 ];
 // Snappier while the pointer is over the deck, slow and dreamy as it settles back.
-const SPRING = { type: 'spring', stiffness: 52, damping: 20, opacity: { duration: 0.55 } };
+const SPRING = { type: 'spring', stiffness: 170, damping: 20, opacity: { duration: 0.35 } };
 const SPRING_RETURN = { type: 'spring', stiffness: 22, damping: 26, opacity: { duration: 0.9 } };
 
 // A lens-inspired card deck: cards cycle automatically (the front card slides
@@ -30,6 +31,7 @@ export default function LensVisual({ className = '', size = 360 }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const { settings } = useSiteSettings();
+  const { t } = useI18n();
   const [hovered, setHovered] = useState(false);
   const [order, setOrder] = useState([0, 1, 2, 3]);
   const [zoomed, setZoomed] = useState(null);
@@ -37,8 +39,8 @@ export default function LensVisual({ className = '', size = 360 }) {
   // Tilt runs through soft springs so it eases out slowly when the pointer leaves.
   const tiltX = useMotionValue(0);
   const tiltY = useMotionValue(0);
-  const rx = useSpring(tiltX, { stiffness: 32, damping: 17 });
-  const ry = useSpring(tiltY, { stiffness: 32, damping: 17 });
+  const rx = useSpring(tiltX, { stiffness: 130, damping: 16 });
+  const ry = useSpring(tiltY, { stiffness: 130, damping: 16 });
 
   const images = useMemo(() => {
     const raw = [settings.hero_image_url, ...(settings.gallery_images || [])].filter(Boolean);
@@ -112,15 +114,22 @@ export default function LensVisual({ className = '', size = 360 }) {
             <div className="h-3/4 w-3/4 rounded-full bg-primary/25 blur-3xl" />
           </div>
 
-          {/* Lens ring */}
+          {/* Soft halo ring + orbiting comet arc */}
+          <div
+            className="absolute inset-7 rounded-full border border-primary/10"
+            style={{ transform: 'translateZ(12px)' }}
+          />
           <motion.div
-            className="absolute inset-6 rounded-full border-[6px] border-primary/30"
+            className="absolute inset-5 rounded-full"
+            style={{
+              transform: 'translateZ(16px)',
+              background: 'conic-gradient(from 0deg, transparent 0deg 310deg, hsl(var(--primary) / 0.9) 350deg 360deg)',
+              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px))',
+              mask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px))',
+            }}
             animate={reduce ? {} : { rotate: 360 }}
-            transition={{ duration: 28, repeat: Infinity, ease: 'linear' }}
-            style={{ transform: 'translateZ(20px)' }}
-          >
-            <div className="absolute -top-2 left-1/2 h-4 w-4 -translate-x-1/2 rounded-full bg-primary shadow-[0_0_20px] shadow-primary" />
-          </motion.div>
+            transition={{ duration: 14, repeat: Infinity, ease: 'linear' }}
+          />
 
           {/* Card deck */}
           {order.map((imgIndex, pos) => {
@@ -161,26 +170,33 @@ export default function LensVisual({ className = '', size = 360 }) {
             );
           })}
 
-          {/* Floating thumbnail chip */}
+          {/* Floating CTR-uplift chip */}
           <div
             className="absolute -end-1 top-[16%] flex items-center gap-2 rounded-2xl border border-border bg-card/90 px-3 py-2 shadow-float backdrop-blur"
             style={{ transform: 'translateZ(100px)' }}
           >
             <span className="grid h-8 w-8 place-items-center rounded-xl brand-gradient text-white">
-              <Sparkles className="h-3.5 w-3.5" />
+              <TrendingUp className="h-3.5 w-3.5" />
             </span>
             <div className="text-[10px] font-semibold leading-tight text-foreground">
-              AI<br />ready
+              {t('hero.chip.ctr')}
+              <br />
+              <span className="font-medium text-muted-foreground">{t('hero.chip.ctrLabel')}</span>
             </div>
           </div>
 
-          {/* Floating score chip */}
+          {/* Floating watch-time chip */}
           <div
-            className="absolute -start-2 bottom-[16%] rounded-2xl border border-border bg-card/90 px-3 py-2 shadow-float backdrop-blur"
+            className="absolute -start-2 bottom-[16%] flex items-center gap-2 rounded-2xl border border-border bg-card/90 px-3 py-2 shadow-float backdrop-blur"
             style={{ transform: 'translateZ(90px)' }}
           >
-            <div className="text-[10px] font-medium text-muted-foreground">Score</div>
-            <div className="text-lg font-extrabold brand-text leading-none">87</div>
+            <span className="grid h-8 w-8 place-items-center rounded-xl bg-secondary text-primary">
+              <Timer className="h-3.5 w-3.5" />
+            </span>
+            <div>
+              <div className="text-[10px] font-medium text-muted-foreground">{t('hero.chip.watchLabel')}</div>
+              <div className="text-lg font-extrabold brand-text leading-none">{t('hero.chip.watch')}</div>
+            </div>
           </div>
         </motion.div>
       </motion.div>

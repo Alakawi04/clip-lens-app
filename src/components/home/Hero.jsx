@@ -37,7 +37,7 @@ export default function Hero() {
             <button
               type="button"
               onClick={scrollToHow}
-              className="btn-3d inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3.5 text-sm font-semibold text-foreground hover:bg-card sm:w-auto"
+              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card/60 px-6 py-3.5 text-sm font-semibold text-foreground transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-card sm:w-auto"
             >
               <ArrowDown className="h-4 w-4" />
               {t('hero.secondary')}

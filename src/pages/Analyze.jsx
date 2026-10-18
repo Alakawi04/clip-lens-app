@@ -23,33 +23,40 @@ export default function Analyze() {
     setParams(next === 'link' ? { mode: 'review' } : {}, { replace: true });
   };
 
-  const handleStart = async ({ sourceType, sourceLabel, sourceUrl }) => {
+  const handleStart = async ({ sourceType, sourceLabel, sourceUrl, studioStats }) => {
     setSubmitting(true);
     try {
       let label = sourceLabel;
       let extra = {};
-      // For YouTube links, fetch the video's public stats first so the
-      // analysis is grounded in real numbers (views, likes, date…).
+      // For YouTube links: fetch the video's public stats, then layer the
+      // creator's YouTube Studio numbers (CTR, impressions…) on top.
       if (sourceType === 'youtube' && sourceUrl) {
+        let s = null;
         try {
           const res = await base44.functions.invoke('fetchYouTubeStats', { url: sourceUrl });
-          const s = res?.data;
-          if (s && !s.error) {
-            label = `YouTube · ${s.title}`;
-            extra = {
-              thumbnail_url: s.thumbnail_url || '',
-              duration_seconds: s.duration_seconds || null,
-              youtube_stats: {
-                views: s.views,
-                likes: s.likes,
-                comments: s.comments,
-                channel: s.channel || '',
-                published_at: s.published_at || '',
-              },
-            };
-          }
+          const d = res?.data;
+          if (d && !d.error) s = d;
         } catch {
           // couldn't fetch stats — continue with the raw link
+        }
+        const st = studioStats || {};
+        const hasStudio = ['impressions', 'ctr', 'views', 'avgView', 'duration'].some((k) => st[k] != null);
+        if (s || hasStudio) {
+          if (s) label = `YouTube · ${s.title}`;
+          extra = {
+            thumbnail_url: (s && s.thumbnail_url) || '',
+            duration_seconds: st.duration != null ? st.duration : (s && s.duration_seconds) || null,
+            youtube_stats: {
+              views: st.views != null ? st.views : s ? s.views : null,
+              likes: s ? s.likes : null,
+              comments: s ? s.comments : null,
+              channel: (s && s.channel) || '',
+              published_at: (s && s.published_at) || '',
+              impressions: st.impressions != null ? st.impressions : null,
+              ctr: st.ctr != null ? st.ctr : null,
+              avg_view_duration: st.avgView != null ? st.avgView : null,
+            },
+          };
         }
       }
       const rec = await base44.entities.Analysis.create({

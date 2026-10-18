@@ -63,23 +63,60 @@ export function pickThumbnail(seed) {
   return SAMPLE_THUMBNAILS[idx];
 }
 
+// 210 → "3:30"
+function formatDuration(totalSeconds) {
+  const s = Math.max(0, Math.round(totalSeconds || 0));
+  return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
 // Returns the full result payload (score, summary, thumbnail, titles, improvements).
-// When public YouTube stats are available, the result is grounded in them:
-// engagement (like rate) nudges the score and leads the summary.
-export function generateMockResult({ sourceType, sourceLabel, stats }) {
+// When YouTube stats are available (public and/or from the creator's Studio
+// dashboard), the result is grounded in them: engagement, CTR and retention
+// nudge the score, lead the summary, and point at the real problem.
+export function generateMockResult({ sourceType, sourceLabel, stats, durationSeconds }) {
   const lang = (typeof window !== 'undefined' && document.documentElement.lang === 'ar') ? 'ar' : 'en';
   let score = 62 + Math.floor(Math.random() * 30); // 62-91
   const summaries = SUMMARIES[lang];
   let summary = summaries[Math.floor(Math.random() * summaries.length)];
 
-  if (stats && stats.views > 0 && stats.likes != null) {
-    const likeRate = (stats.likes / stats.views) * 100;
-    score = Math.max(35, Math.min(97, score + Math.round((likeRate - 3) * 2)));
+  if (stats) {
     const fmt = (n) => new Intl.NumberFormat(lang === 'ar' ? 'ar' : 'en-US').format(n);
-    const rateStr = `${likeRate.toFixed(1)}${lang === 'ar' ? '٪' : '%'}`;
-    summary = (lang === 'ar'
-      ? `حسب إحصائيات يوتيوب العامة: ${fmt(stats.views)} مشاهدة و${fmt(stats.likes)} إعجابًا بنسبة إعجاب ${rateStr}. `
-      : `Based on public YouTube stats: ${fmt(stats.views)} views and ${fmt(stats.likes)} likes (${rateStr} like rate). `) + summary;
+    const clamp = (n) => Math.max(35, Math.min(97, n));
+    const parts = [];
+
+    if (stats.views > 0 && stats.likes != null) {
+      const likeRate = (stats.likes / stats.views) * 100;
+      score = clamp(score + Math.round((likeRate - 3) * 2));
+      parts.push(lang === 'ar'
+        ? `${fmt(stats.views)} مشاهدة و${fmt(stats.likes)} إعجابًا (نسبة إعجاب ${likeRate.toFixed(1)}٪).`
+        : `${fmt(stats.views)} views and ${fmt(stats.likes)} likes (${likeRate.toFixed(1)}% like rate).`);
+    }
+
+    if (stats.ctr != null) {
+      score = clamp(score + Math.round((stats.ctr - 4) * 3));
+      parts.push(lang === 'ar'
+        ? `نسبة النقر ${stats.ctr.toFixed(1)}٪${stats.impressions != null ? ` من ${fmt(stats.impressions)} ظهور` : ''}.`
+        : `A ${stats.ctr.toFixed(1)}% click-through rate${stats.impressions != null ? ` on ${fmt(stats.impressions)} impressions` : ''}.`);
+      if (stats.ctr < 4) {
+        parts.push(lang === 'ar'
+          ? 'النقرة ضعيفة: الصورة المصغّرة والعنوان لا يجذبان بما يكفي — هذه أول أولوية للتحسين.'
+          : 'Clicks are weak: the thumbnail and title are not pulling viewers in — this is the first thing to fix.');
+      }
+    }
+
+    if (stats.avg_view_duration != null && durationSeconds > 0) {
+      const retention = Math.min(100, (stats.avg_view_duration / durationSeconds) * 100);
+      parts.push(lang === 'ar'
+        ? `متوسط المشاهدة ${formatDuration(stats.avg_view_duration)} من ${formatDuration(durationSeconds)} (${retention.toFixed(0)}٪).`
+        : `Average view duration ${formatDuration(stats.avg_view_duration)} of ${formatDuration(durationSeconds)} (${retention.toFixed(0)}%).`);
+      if (retention < 30) {
+        parts.push(lang === 'ar'
+          ? 'الاحتفاظ منخفض: المشاهدون يغادرون مبكرًا، فراجع بداية الفيديو وإيقاعه.'
+          : 'Retention is low: viewers drop off early — revisit your opening and pacing.');
+      }
+    }
+
+    if (parts.length) summary = parts.join(' ') + ' ' + summary;
   }
 
   return {

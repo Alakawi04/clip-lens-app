@@ -77,6 +77,7 @@ export default function Progress() {
           sourceType: record.source_type,
           sourceLabel: record.source_label,
           stats: record.youtube_stats,
+          durationSeconds: record.duration_seconds,
         });
         try {
           await base44.entities.Analysis.update(id, {

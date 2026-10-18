@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, Sparkles, ArrowLeft, Info, Lightbulb, ImageDown, Eye, ThumbsUp, Percent, MessageSquare, Calendar, User } from 'lucide-react';
+import { Download, Sparkles, ArrowLeft, Info, Lightbulb, ImageDown, Eye, ThumbsUp, Percent, MessageSquare, Calendar, User, Target, BarChart3, Clock, Timer } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import ScoreRing from '@/components/ScoreRing';
 import TitleList from '@/components/results/TitleList';
@@ -72,6 +72,7 @@ export default function Results() {
   const locale = lang === 'ar' ? 'ar' : 'en-US';
   const stats = record.youtube_stats;
   const fmtNum = (n) => new Intl.NumberFormat(locale).format(n);
+  const fmtDur = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
   const likeRate =
     stats && stats.views > 0 && stats.likes != null
       ? `${((stats.likes / stats.views) * 100).toFixed(1)}%`
@@ -110,7 +111,7 @@ export default function Results() {
         </div>
 
         {/* Public YouTube stats the analysis was grounded in */}
-        {stats && (stats.views != null || stats.likes != null) && (
+        {stats && (stats.views != null || stats.likes != null || stats.ctr != null || stats.impressions != null || stats.avg_view_duration != null) && (
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {t('results.stats')}
@@ -124,6 +125,20 @@ export default function Results() {
             {likeRate && <StatChip icon={Percent}>{likeRate} {t('results.likeRate')}</StatChip>}
             {stats.comments != null && (
               <StatChip icon={MessageSquare}>{fmtNum(stats.comments)} {t('results.comments')}</StatChip>
+            )}
+            {stats.ctr != null && (
+              <StatChip icon={Target}>{stats.ctr.toFixed(1)}% {t('results.ctr')}</StatChip>
+            )}
+            {stats.impressions != null && (
+              <StatChip icon={BarChart3}>{fmtNum(stats.impressions)} {t('results.impressions')}</StatChip>
+            )}
+            {stats.avg_view_duration != null && (
+              <StatChip icon={Clock}>{t('results.avgView')} {fmtDur(stats.avg_view_duration)}</StatChip>
+            )}
+            {stats.avg_view_duration != null && record.duration_seconds > 0 && (
+              <StatChip icon={Timer}>
+                {Math.min(100, Math.round((stats.avg_view_duration / record.duration_seconds) * 100))}% {t('results.retention')}
+              </StatChip>
             )}
             {stats.channel && <StatChip icon={User}>{stats.channel}</StatChip>}
             {stats.published_at && (

@@ -47,7 +47,7 @@ export default function ToolCards() {
             >
               <Link
                 to={c.to}
-                className="hover-3d group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
                 <div className="relative aspect-[16/9] overflow-hidden">
                   <Image
