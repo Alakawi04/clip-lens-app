@@ -40,6 +40,8 @@ export default function LensVisual({ className = '', size = 360 }) {
   const [hovered, setHovered] = useState(false);
   const [order, setOrder] = useState([0, 1, 2, 3]);
   const [zoomed, setZoomed] = useState(null);
+  const [swapping, setSwapping] = useState(false);
+  const firstOrder = useRef(true);
 
   // Tilt runs through soft springs so it eases out slowly when the pointer leaves.
   const tiltX = useMotionValue(0);
@@ -70,6 +72,18 @@ export default function LensVisual({ className = '', size = 360 }) {
     }, 4600);
     return () => clearInterval(id);
   }, [reduce, hovered, zoomed, order.length]);
+
+  // While the deck cycles, the brand mark withdraws to clear the way for the
+  // old card to drop and the new one to rise, then settles back in.
+  useEffect(() => {
+    if (firstOrder.current) {
+      firstOrder.current = false;
+      return undefined;
+    }
+    setSwapping(true);
+    const id = setTimeout(() => setSwapping(false), 1600);
+    return () => clearTimeout(id);
+  }, [order]);
 
   const onMove = (e) => {
     if (reduce) return;
@@ -129,23 +143,40 @@ export default function LensVisual({ className = '', size = 360 }) {
             style={{ transform: 'translate(-50%, -50%) rotate(9deg) translateZ(-190px)' }}
           />
 
-          {/* 3D brand mark — floats right behind the front card, deck behind it */}
+          {/* 3D brand mark — floats right behind the front card; withdraws while
+              the deck cycles so the old card can drop and the new one rise. */}
           <div
-            className="absolute left-1/2 top-1/2 aspect-square w-[68%]"
+            className="absolute left-1/2 top-1/2 aspect-square w-[84%]"
             style={{ transform: 'translate(-50%, -50%) translateZ(20px) rotate(-10deg)' }}
           >
             <motion.div
               className="relative h-full w-full"
-              animate={reduce ? {} : { y: [0, -12, 0] }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+              animate={
+                reduce
+                  ? {}
+                  : swapping
+                    ? { x: -80, y: 110, scale: 0.8, opacity: 0.2 }
+                    : { x: 0, y: 0, scale: 1, opacity: 1 }
+              }
+              transition={
+                swapping
+                  ? { duration: 0.6, ease: [0.4, 0, 0.2, 1] }
+                  : { type: 'spring', stiffness: 60, damping: 14 }
+              }
             >
-              <div className="absolute inset-6 rounded-full bg-primary/20 blur-3xl" />
-              <img
-                src={BRAND_MARK}
-                alt=""
-                draggable={false}
-                className="relative h-full w-full object-contain mix-blend-screen"
-              />
+              <motion.div
+                className="relative h-full w-full"
+                animate={reduce ? {} : { y: [0, -12, 0] }}
+                transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+              >
+                <div className="absolute inset-6 rounded-full bg-primary/20 blur-3xl" />
+                <img
+                  src={BRAND_MARK}
+                  alt=""
+                  draggable={false}
+                  className="relative h-full w-full object-contain mix-blend-screen"
+                />
+              </motion.div>
             </motion.div>
           </div>
 
