@@ -21,16 +21,20 @@ export default function ThemeToggle({ className = '', showLabel = false }) {
         showLabel ? 'px-3.5 py-2 text-xs font-semibold' : 'h-9 w-9 justify-center'
       } ${className}`}
     >
-      <Sun
-        className={`h-4 w-4 transition-all ${isDark ? 'scale-0 -rotate-90 opacity-0' : 'scale-100 rotate-0 opacity-100'} ${
-          showLabel ? '' : 'absolute'
-        }`}
-      />
-      <Moon
-        className={`h-4 w-4 transition-all ${isDark ? 'scale-100 rotate-0 opacity-100' : 'scale-0 rotate-90 opacity-0'} ${
-          showLabel ? '' : 'absolute'
-        }`}
-      />
+      {showLabel ? (
+        // Labeled pill: one real icon + text, so the pill stays symmetric.
+        isDark ? <Moon className="h-4 w-4 shrink-0" /> : <Sun className="h-4 w-4 shrink-0" />
+      ) : (
+        // Icon-only pill: both icons crossfade in place, centered.
+        <>
+          <Sun
+            className={`absolute h-4 w-4 transition-all ${isDark ? 'scale-0 -rotate-90 opacity-0' : 'scale-100 rotate-0 opacity-100'}`}
+          />
+          <Moon
+            className={`absolute h-4 w-4 transition-all ${isDark ? 'scale-100 rotate-0 opacity-100' : 'scale-0 rotate-90 opacity-0'}`}
+          />
+        </>
+      )}
       {showLabel && <span>{isDark ? t('theme.dark') : t('theme.light')}</span>}
     </button>
   );
