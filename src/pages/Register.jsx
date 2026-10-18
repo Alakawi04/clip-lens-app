@@ -129,7 +129,7 @@ export default function Register() {
     <AuthLayout
       icon={UserPlus}
       title="Create your account"
-      subtitle="Sign up to get started"
+      subtitle="Create a free account to analyze videos and save your results"
       footer={
         <>
           Already have an account?{" "}
@@ -197,8 +197,10 @@ export default function Register() {
               onChange={(e) => setPassword(e.target.value)}
               className="ps-10 h-12"
               required
+              minLength={8}
             />
           </div>
+          <p className="text-xs text-muted-foreground">Use at least 8 characters.</p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="confirm">Confirm Password</Label>

@@ -26,7 +26,7 @@ export default function Login() {
       await base44.auth.loginViaEmailPassword(email, password);
       window.location.href = returnTo;
     } catch (err) {
-      setError(err.message || "Invalid email or password");
+      setError(err.message || "Invalid email or password. Check your details and try again.");
     } finally {
       setLoading(false);
     }
@@ -40,7 +40,7 @@ export default function Login() {
     <AuthLayout
       icon={LogIn}
       title="Welcome back"
-      subtitle="Log in to your account"
+      subtitle="Log in to analyze videos and access your saved results"
       footer={
         <>
           Don't have an account?{" "}

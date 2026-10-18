@@ -21,6 +21,7 @@ import Register from '@/pages/Register';
 import ForgotPassword from '@/pages/ForgotPassword';
 import ResetPassword from '@/pages/ResetPassword';
 import ProtectedRoute from '@/components/ProtectedRoute';
+import RequireLogin from '@/components/RequireLogin';
 import AdminRoute from '@/components/AdminRoute';
 import Admin from '@/pages/Admin';
 // Add page imports here
@@ -53,7 +54,7 @@ const AuthenticatedApp = () => {
     <Routes>
       <Route element={<Layout />}>
         <Route path="/" element={<Home />} />
-        <Route element={<ProtectedRoute unauthenticatedElement={<Navigate to="/login" replace />} />}>
+        <Route element={<ProtectedRoute unauthenticatedElement={<RequireLogin />} />}>
           <Route path="/analyze" element={<Analyze />} />
           <Route path="/progress/:id" element={<Progress />} />
           <Route path="/results/:id" element={<Results />} />
