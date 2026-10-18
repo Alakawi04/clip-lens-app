@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Sparkles, Search, History as HistoryIcon } from 'lucide-react';
+import { Home, Sparkles, Search, History as HistoryIcon, Zap } from 'lucide-react';
 import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
 import AccountMenu from './AccountMenu';
@@ -9,6 +9,7 @@ import { NavBar } from '@/components/ui/tubelight-navbar';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
 import { useAuth } from '@/lib/AuthContext';
+import { useCredits } from '@/lib/CreditContext';
 import { useScrolled } from '@/hooks/use-scrolled';
 
 // Floating brand mark + account controls, with the tubelight pill below it.
@@ -19,6 +20,7 @@ export default function Navbar() {
   const { t } = useI18n();
   const scrolled = useScrolled();
   const { isAuthenticated } = useAuth();
+  const { enabled, balance } = useCredits();
   const expanded = !scrolled;
 
   const items = [
@@ -51,6 +53,16 @@ export default function Navbar() {
           </Link>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            {enabled && isAuthenticated && (
+              <Link
+                to="/analyze"
+                title={t('nav.credits')}
+                className="flex items-center gap-1.5 rounded-full border border-primary/30 bg-card/70 px-3 py-1.5 text-xs font-bold shadow-soft backdrop-blur transition-all duration-300 hover:-translate-y-0.5 hover:border-primary/60"
+              >
+                <Zap className="h-3.5 w-3.5 text-primary" />
+                {balance}
+              </Link>
+            )}
             <ThemeToggle showLabel={expanded} />
             <AccountMenu showLabel={expanded} />
           </div>

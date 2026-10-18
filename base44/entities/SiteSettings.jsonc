@@ -63,6 +63,31 @@
     "texts": {
       "type": "object",
       "description": "Admin overrides for any text on the site, keyed as \"<lang>.<i18n key>\" (e.g. \"en.hero.title\")."
+    },
+    "credits_enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Master switch for the credit & subscription system. Off = the site stays completely free and open, exactly as before."
+    },
+    "credits_cost": {
+      "type": "number",
+      "default": 1,
+      "description": "Credits spent per analysis when the credit system is enabled."
+    },
+    "credits_signup": {
+      "type": "number",
+      "default": 3,
+      "description": "Free credits granted to a user on their first analysis when the credit system is enabled."
+    },
+    "credits_pro_price": {
+      "type": "number",
+      "default": 12,
+      "description": "Monthly price of the Pro plan."
+    },
+    "credits_pro_amount": {
+      "type": "number",
+      "default": 200,
+      "description": "Credits granted monthly with the Pro plan."
     }
   },
   "required": [],

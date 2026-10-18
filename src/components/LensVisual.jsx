@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useSpring } from 'framer-motion';
-import { Play, TrendingUp, Timer, X } from 'lucide-react';
+import { Play, Sparkles, BarChart3, X } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { useI18n } from '@/lib/i18n';
@@ -114,21 +114,14 @@ export default function LensVisual({ className = '', size = 360 }) {
             <div className="h-3/4 w-3/4 rounded-full bg-primary/25 blur-3xl" />
           </div>
 
-          {/* Soft halo ring + orbiting comet arc */}
+          {/* Ghost glow panels — blurred echoes of the card stack behind the deck */}
           <div
-            className="absolute inset-7 rounded-full border border-primary/10"
-            style={{ transform: 'translateZ(12px)' }}
+            className="absolute left-1/2 top-1/2 aspect-video w-[130%] rounded-[2.5rem] bg-primary/20 blur-3xl"
+            style={{ transform: 'translate(-50%, -50%) rotate(-12deg) translateZ(-150px)' }}
           />
-          <motion.div
-            className="absolute inset-5 rounded-full"
-            style={{
-              transform: 'translateZ(16px)',
-              background: 'conic-gradient(from 0deg, transparent 0deg 310deg, hsl(var(--primary) / 0.9) 350deg 360deg)',
-              WebkitMask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px))',
-              mask: 'radial-gradient(farthest-side, transparent calc(100% - 3px), black calc(100% - 2px))',
-            }}
-            animate={reduce ? {} : { rotate: 360 }}
-            transition={{ duration: 14, repeat: Infinity, ease: 'linear' }}
+          <div
+            className="absolute left-1/2 top-1/2 aspect-video w-[105%] rounded-[2.5rem] bg-primary/10 blur-2xl"
+            style={{ transform: 'translate(-50%, -50%) rotate(9deg) translateZ(-190px)' }}
           />
 
           {/* Card deck */}
@@ -170,32 +163,32 @@ export default function LensVisual({ className = '', size = 360 }) {
             );
           })}
 
-          {/* Floating CTR-uplift chip */}
+          {/* Floating AI-review chip */}
           <div
             className="absolute -end-1 top-[16%] flex items-center gap-2 rounded-2xl border border-border bg-card/90 px-3 py-2 shadow-float backdrop-blur"
             style={{ transform: 'translateZ(100px)' }}
           >
             <span className="grid h-8 w-8 place-items-center rounded-xl brand-gradient text-white">
-              <TrendingUp className="h-3.5 w-3.5" />
+              <Sparkles className="h-3.5 w-3.5" />
             </span>
             <div className="text-[10px] font-semibold leading-tight text-foreground">
-              {t('hero.chip.ctr')}
+              {t('hero.chip.reviewTitle')}
               <br />
-              <span className="font-medium text-muted-foreground">{t('hero.chip.ctrLabel')}</span>
+              <span className="font-medium text-muted-foreground">{t('hero.chip.reviewLabel')}</span>
             </div>
           </div>
 
-          {/* Floating watch-time chip */}
+          {/* Floating insights chip */}
           <div
             className="absolute -start-2 bottom-[16%] flex items-center gap-2 rounded-2xl border border-border bg-card/90 px-3 py-2 shadow-float backdrop-blur"
             style={{ transform: 'translateZ(90px)' }}
           >
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-secondary text-primary">
-              <Timer className="h-3.5 w-3.5" />
+              <BarChart3 className="h-3.5 w-3.5" />
             </span>
             <div>
-              <div className="text-[10px] font-medium text-muted-foreground">{t('hero.chip.watchLabel')}</div>
-              <div className="text-lg font-extrabold brand-text leading-none">{t('hero.chip.watch')}</div>
+              <div className="text-[10px] font-medium text-muted-foreground">{t('hero.chip.insightTitle')}</div>
+              <div className="text-sm font-extrabold brand-text leading-none">{t('hero.chip.insightLabel')}</div>
             </div>
           </div>
         </motion.div>

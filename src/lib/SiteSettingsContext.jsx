@@ -21,6 +21,12 @@ export const SITE_DEFAULTS = {
   ],
   // Admin text overrides, keyed "<lang>.<i18n key>".
   texts: {},
+  // Credit & subscription system (admin-controlled, off by default).
+  credits_enabled: false,
+  credits_cost: 1,
+  credits_signup: 3,
+  credits_pro_price: 12,
+  credits_pro_amount: 200,
 };
 
 const SiteSettingsContext = createContext(null);

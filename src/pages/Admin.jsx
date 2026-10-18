@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-import { LayoutDashboard, Image as ImageIcon, Palette, Type, Save, Loader2, Check } from 'lucide-react';
+import { LayoutDashboard, Image as ImageIcon, Palette, Type, Coins, Save, Loader2, Check } from 'lucide-react';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { useI18n } from '@/lib/i18n';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import AdminOverview from '@/components/admin/AdminOverview';
 import AdminContent from '@/components/admin/AdminContent';
 import AdminAppearance from '@/components/admin/AdminAppearance';
 import AdminTexts from '@/components/admin/AdminTexts';
+import AdminBilling from '@/components/admin/AdminBilling';
 import ExportCodeButton from '@/components/admin/ExportCodeButton';
 
 export default function Admin() {
@@ -36,6 +37,7 @@ export default function Admin() {
     { id: 'content', label: t('admin.tab.content'), icon: ImageIcon },
     { id: 'texts', label: t('admin.tab.texts'), icon: Type },
     { id: 'appearance', label: t('admin.tab.appearance'), icon: Palette },
+    { id: 'billing', label: t('admin.tab.billing'), icon: Coins },
   ];
 
   return (
@@ -89,6 +91,8 @@ export default function Admin() {
           <AdminContent draft={draft} set={set} />
         ) : tab === 'texts' ? (
           <AdminTexts draft={draft} set={set} />
+        ) : tab === 'billing' ? (
+          <AdminBilling draft={draft} set={set} />
         ) : (
           <AdminAppearance draft={draft} set={set} />
         )}

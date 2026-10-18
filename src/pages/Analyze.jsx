@@ -1,18 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Upload, Youtube, ArrowLeft } from 'lucide-react';
+import { Upload, Youtube, ArrowLeft, Zap } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import UploadTab from '@/components/analyze/UploadTab';
 import LinkTab from '@/components/analyze/LinkTab';
 import { useI18n } from '@/lib/i18n';
+import { useSiteSettings } from '@/lib/SiteSettingsContext';
+import { useCredits } from '@/lib/CreditContext';
 
 export default function Analyze() {
   const { t } = useI18n();
+  const { settings } = useSiteSettings();
+  const { spend } = useCredits();
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   const [tab, setTab] = useState(params.get('mode') === 'review' ? 'link' : 'upload');
   const [submitting, setSubmitting] = useState(false);
+  const [creditError, setCreditError] = useState(false);
 
   useEffect(() => {
     setTab(params.get('mode') === 'review' ? 'link' : 'upload');
@@ -24,8 +29,18 @@ export default function Analyze() {
   };
 
   const handleStart = async ({ sourceType, sourceLabel, sourceUrl, studioStats }) => {
+    setCreditError(false);
     setSubmitting(true);
     try {
+      // Credit gate — only active while the admin has the system enabled.
+      if (settings?.credits_enabled) {
+        const res = await spend();
+        if (!res || res.ok === false) {
+          setCreditError(true);
+          setSubmitting(false);
+          return;
+        }
+      }
       let label = sourceLabel;
       let extra = {};
       // For YouTube links: fetch the video's public stats, then layer the
@@ -120,6 +135,29 @@ export default function Analyze() {
           );
         })}
       </div>
+
+      {settings?.credits_enabled && (
+        <div className="mt-5 flex items-center gap-2 rounded-2xl border border-primary/25 bg-secondary/40 px-4 py-2.5 text-sm font-semibold">
+          <Zap className="h-4 w-4 text-primary" />
+          {t('nav.credits')}
+        </div>
+      )}
+
+      {creditError && (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-primary/40 bg-accent/60 px-4 py-3.5">
+          <div>
+            <p className="text-sm font-semibold">{t('analyze.credits.title')}</p>
+            <p className="text-xs text-muted-foreground">{t('analyze.credits.desc')}</p>
+          </div>
+          <Link
+            to="/"
+            onClick={() => setTimeout(() => document.getElementById('pricing')?.scrollIntoView({ behavior: 'smooth' }), 150)}
+            className="text-sm font-semibold text-primary hover:underline"
+          >
+            {t('analyze.credits.cta')}
+          </Link>
+        </div>
+      )}
 
       <div className="mt-6">
         {tab === 'upload' ? (

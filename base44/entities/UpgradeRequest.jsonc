@@ -1,0 +1,59 @@
+{
+  "name": "UpgradeRequest",
+  "type": "object",
+  "properties": {
+    "user_id": {
+      "type": "string",
+      "description": "Id of the user requesting the upgrade."
+    },
+    "plan": {
+      "type": "string",
+      "enum": [
+        "pro"
+      ],
+      "default": "pro",
+      "description": "Plan the user wants to switch to."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Review state of the request; an admin approves or rejects it."
+    }
+  },
+  "required": [
+    "user_id",
+    "status"
+  ],
+  "rls": {
+    "read": {
+      "$or": [
+        {
+          "created_by_id": "{{user.id}}"
+        },
+        {
+          "user_condition": {
+            "role": "admin"
+          }
+        }
+      ]
+    },
+    "create": {
+      "created_by_id": "{{user.id}}"
+    },
+    "update": {
+      "user_condition": {
+        "role": "admin"
+      }
+    },
+    "delete": {
+      "user_condition": {
+        "role": "admin"
+      }
+    }
+  }
+}

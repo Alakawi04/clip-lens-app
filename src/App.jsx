@@ -10,6 +10,7 @@ import { ThemeProvider } from 'next-themes';
 import { LanguageProvider } from '@/lib/i18n';
 import LanguageTransition from '@/components/LanguageTransition';
 import { SiteSettingsProvider } from '@/lib/SiteSettingsContext';
+import { CreditProvider } from '@/lib/CreditContext';
 import Layout from '@/components/Layout';
 import Home from '@/pages/Home';
 import Analyze from '@/pages/Analyze';
@@ -86,13 +87,15 @@ function App() {
         <LanguageProvider>
           <LanguageTransition />
           <AuthProvider>
-            <QueryClientProvider client={queryClientInstance}>
+            <CreditProvider>
+              <QueryClientProvider client={queryClientInstance}>
               <Router>
                 <ScrollToTop />
                 <AuthenticatedApp />
               </Router>
               <Toaster />
             </QueryClientProvider>
+            </CreditProvider>
           </AuthProvider>
         </LanguageProvider>
       </SiteSettingsProvider>
