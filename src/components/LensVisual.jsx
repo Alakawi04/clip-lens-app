@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence, useReducedMotion, useMotionValue, useSpring } from 'framer-motion';
-import { Play, Sparkles, BarChart3, X } from 'lucide-react';
+import { Sparkles, BarChart3, X } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { useI18n } from '@/lib/i18n';
@@ -86,8 +86,8 @@ export default function LensVisual({ className = '', size = 360 }) {
     const r = el.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width - 0.5;
     const py = (e.clientY - r.top) / r.height - 0.5;
-    tiltX.set(py * -20);
-    tiltY.set(px * 26);
+    tiltX.set(py * -28);
+    tiltY.set(px * 36);
   };
 
   const targetFor = (pos) => {
@@ -124,16 +124,16 @@ export default function LensVisual({ className = '', size = 360 }) {
         >
           {/* Glow base */}
           <div className="absolute inset-0 -z-10 grid place-items-center">
-            <div className="h-3/4 w-3/4 rounded-full bg-primary/25 blur-3xl" />
+            <div className="h-3/4 w-3/4 rounded-full bg-primary/15 blur-3xl" />
           </div>
 
           {/* Ghost glow panels — blurred echoes of the card stack behind the deck */}
           <div
-            className="absolute left-1/2 top-1/2 aspect-video w-[130%] rounded-[2.5rem] bg-primary/20 blur-3xl"
+            className="absolute left-1/2 top-1/2 aspect-video w-[130%] rounded-[2.5rem] bg-primary/12 blur-3xl"
             style={{ transform: 'translate(-50%, -50%) rotate(-12deg) translateZ(-150px)' }}
           />
           <div
-            className="absolute left-1/2 top-1/2 aspect-video w-[105%] rounded-[2.5rem] bg-primary/10 blur-2xl"
+            className="absolute left-1/2 top-1/2 aspect-video w-[105%] rounded-[2.5rem] bg-primary/6 blur-2xl"
             style={{ transform: 'translate(-50%, -50%) rotate(9deg) translateZ(-190px)' }}
           />
 
@@ -174,11 +174,6 @@ export default function LensVisual({ className = '', size = 360 }) {
                 {isFront && (
                   <>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    <div className="absolute inset-0 grid place-items-center">
-                      <span className="grid h-12 w-12 place-items-center rounded-full bg-white/90 text-primary shadow-float backdrop-blur">
-                        <Play className="h-5 w-5 translate-x-0.5 fill-primary" />
-                      </span>
-                    </div>
                     {/* scan line */}
                     <motion.div
                       className="absolute inset-x-0 h-1/3 bg-gradient-to-b from-primary/0 via-primary/30 to-primary/0"

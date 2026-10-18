@@ -8,6 +8,18 @@ import { cn } from '@/lib/utils';
 export function NavBar({ items = [], className, compact = false, expanded = false }) {
   const location = useLocation();
   const current = `${location.pathname}${location.search}`;
+  const pillRef = React.useRef(null);
+  const [tilt, setTilt] = React.useState({ rx: 0, ry: 0 });
+
+  // A very light 3D tilt so the pill leans gently toward the pointer.
+  const onPillMove = (e) => {
+    const el = pillRef.current;
+    if (!el) return;
+    const r = el.getBoundingClientRect();
+    const px = (e.clientX - r.left) / r.width - 0.5;
+    const py = (e.clientY - r.top) / r.height - 0.5;
+    setTilt({ rx: -py * 4, ry: px * 6 });
+  };
 
   return (
     <motion.div
@@ -22,6 +34,10 @@ export function NavBar({ items = [], className, compact = false, expanded = fals
       transition={{ type: 'spring', stiffness: 250, damping: 28 }}
     >
       <div
+        ref={pillRef}
+        onMouseMove={onPillMove}
+        onMouseLeave={() => setTilt({ rx: 0, ry: 0 })}
+        style={{ transform: `perspective(700px) rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)` }}
         className={cn(
           'flex items-center rounded-full border backdrop-blur-xl transition-all duration-500',
           compact
