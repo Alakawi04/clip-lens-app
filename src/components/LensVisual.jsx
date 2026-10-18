@@ -146,7 +146,7 @@ export default function LensVisual({ className = '', size = 360 }) {
           {/* 3D brand mark — floats right behind the front card; withdraws while
               the deck cycles so the old card can drop and the new one rise. */}
           <div
-            className="absolute left-1/2 top-1/2 aspect-square w-[84%]"
+            className="absolute left-1/2 top-1/2 aspect-square w-[96%]"
             style={{ transform: 'translate(-50%, -50%) translateZ(20px) rotate(-10deg)' }}
           >
             <motion.div
@@ -155,13 +155,13 @@ export default function LensVisual({ className = '', size = 360 }) {
                 reduce
                   ? {}
                   : swapping
-                    ? { x: -80, y: 110, scale: 0.8, opacity: 0.2 }
+                    ? { x: 0, y: 150, scale: 0.92, opacity: 0.25 }
                     : { x: 0, y: 0, scale: 1, opacity: 1 }
               }
               transition={
                 swapping
-                  ? { duration: 0.6, ease: [0.4, 0, 0.2, 1] }
-                  : { type: 'spring', stiffness: 60, damping: 14 }
+                  ? { duration: 0.8, ease: [0.33, 0, 0.2, 1] }
+                  : { duration: 1.1, ease: [0.22, 1, 0.36, 1] }
               }
             >
               <motion.div
