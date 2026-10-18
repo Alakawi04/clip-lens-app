@@ -35,7 +35,7 @@ const HOVER_SLOTS = [
 ];
 // Snappier while the pointer is over the deck, slow and dreamy as it settles back.
 const SPRING = { type: 'spring', stiffness: 170, damping: 20, opacity: { duration: 0.35 } };
-const SPRING_RETURN = { type: 'spring', stiffness: 22, damping: 26, opacity: { duration: 0.9 } };
+const SPRING_RETURN = { type: 'spring', stiffness: 13, damping: 21, mass: 1.4, opacity: { duration: 1.4 } };
 
 // A lens-inspired card deck: cards cycle automatically (the front card slides
 // out and tucks behind the deck) and spread apart on hover. Pointer tilt is
