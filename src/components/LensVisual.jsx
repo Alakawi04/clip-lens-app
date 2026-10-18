@@ -19,11 +19,14 @@ const FALLBACKS = [
 ];
 
 // Stack slots (pos 0 = front). x/y in % of card size, z in px depth.
+// The queue cascades downward: when the deck cycles, the front card drops
+// straight down behind the brand mark to the bottom slot, and every other
+// card rises one slot up — the new front card climbing over the brand mark.
 const SLOTS = [
   { x: 0, y: 0, z: 90, r: 0, s: 1, o: 1 },
-  { x: -24, y: -22, z: -45, r: -14, s: 0.88, o: 0.95 },
-  { x: 26, y: 18, z: -95, r: 12, s: 0.78, o: 0.9 },
-  { x: -38, y: 30, z: -145, r: -18, s: 0.7, o: 0.85 },
+  { x: -16, y: 13, z: -45, r: -7, s: 0.88, o: 0.95 },
+  { x: 15, y: 27, z: -95, r: 8, s: 0.79, o: 0.9 },
+  { x: -7, y: 42, z: -145, r: -6, s: 0.71, o: 0.85 },
 ];
 // Snappier while the pointer is over the deck, slow and dreamy as it settles back.
 const SPRING = { type: 'spring', stiffness: 170, damping: 20, opacity: { duration: 0.35 } };
@@ -40,8 +43,6 @@ export default function LensVisual({ className = '', size = 360 }) {
   const [hovered, setHovered] = useState(false);
   const [order, setOrder] = useState([0, 1, 2, 3]);
   const [zoomed, setZoomed] = useState(null);
-  const [swapping, setSwapping] = useState(false);
-  const firstOrder = useRef(true);
 
   // Tilt runs through soft springs so it eases out slowly when the pointer leaves.
   const tiltX = useMotionValue(0);
@@ -72,18 +73,6 @@ export default function LensVisual({ className = '', size = 360 }) {
     }, 4600);
     return () => clearInterval(id);
   }, [reduce, hovered, zoomed, order.length]);
-
-  // While the deck cycles, the brand mark withdraws to clear the way for the
-  // old card to drop and the new one to rise, then settles back in.
-  useEffect(() => {
-    if (firstOrder.current) {
-      firstOrder.current = false;
-      return undefined;
-    }
-    setSwapping(true);
-    const id = setTimeout(() => setSwapping(false), 1600);
-    return () => clearTimeout(id);
-  }, [order]);
 
   const onMove = (e) => {
     if (reduce) return;
@@ -143,40 +132,24 @@ export default function LensVisual({ className = '', size = 360 }) {
             style={{ transform: 'translate(-50%, -50%) rotate(9deg) translateZ(-190px)' }}
           />
 
-          {/* 3D brand mark — floats right behind the front card; withdraws while
-              the deck cycles so the old card can drop and the new one rise. */}
+          {/* 3D brand mark — stays in place; cycling cards drop behind it and
+              the next card rises up over it. */}
           <div
             className="absolute left-1/2 top-1/2 aspect-square w-[96%]"
             style={{ transform: 'translate(-50%, -50%) translateZ(20px) rotate(-10deg)' }}
           >
             <motion.div
               className="relative h-full w-full"
-              animate={
-                reduce
-                  ? {}
-                  : swapping
-                    ? { x: 0, y: 150, scale: 0.92, opacity: 0.25 }
-                    : { x: 0, y: 0, scale: 1, opacity: 1 }
-              }
-              transition={
-                swapping
-                  ? { duration: 0.8, ease: [0.33, 0, 0.2, 1] }
-                  : { duration: 1.1, ease: [0.22, 1, 0.36, 1] }
-              }
+              animate={reduce ? {} : { y: [0, -12, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <motion.div
-                className="relative h-full w-full"
-                animate={reduce ? {} : { y: [0, -12, 0] }}
-                transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-              >
-                <div className="absolute inset-6 rounded-full bg-primary/20 blur-3xl" />
-                <img
-                  src={BRAND_MARK}
-                  alt=""
-                  draggable={false}
-                  className="relative h-full w-full object-contain mix-blend-screen"
-                />
-              </motion.div>
+              <div className="absolute inset-6 rounded-full bg-primary/20 blur-3xl" />
+              <img
+                src={BRAND_MARK}
+                alt=""
+                draggable={false}
+                className="relative h-full w-full object-contain mix-blend-screen"
+              />
             </motion.div>
           </div>
 
