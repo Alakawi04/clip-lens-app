@@ -1,7 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles } from 'lucide-react';
-import TiltCard from '@/components/TiltCard';
 import { Image } from '@/components/ui/image';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { useI18n } from '@/lib/i18n';
@@ -32,12 +31,12 @@ export default function SampleThumbnails() {
             viewport={{ once: true, margin: '-60px' }}
             transition={{ duration: 0.5, delay: (i % 3) * 0.08 }}
           >
-            <TiltCard className="group">
-              <div className="relative aspect-video overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-shadow duration-300 group-hover:shadow-float">
+            <div className="group">
+              <div className="relative aspect-video overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-all duration-700 ease-out group-hover:-translate-y-2 group-hover:shadow-float">
                 <Image
                   src={src}
                   alt=""
-                  className="h-full w-full object-cover transition-transform duration-500 sm:group-hover:scale-105"
+                  className="h-full w-full object-cover transition-transform duration-700 ease-out sm:group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
                 <span className="absolute start-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold text-primary shadow-soft backdrop-blur">
@@ -48,7 +47,7 @@ export default function SampleThumbnails() {
                   {t('gallery.score')} {SCORES[i % SCORES.length]}
                 </span>
               </div>
-            </TiltCard>
+            </div>
           </motion.div>
         ))}
       </div>
