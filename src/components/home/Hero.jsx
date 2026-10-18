@@ -16,7 +16,7 @@ export default function Hero() {
   };
 
   return (
-    <section className="relative flex min-h-[100svh] items-center overflow-hidden lg:snap-start">
+    <section className="relative hidden min-h-[100svh] items-center overflow-hidden lg:flex lg:snap-start">
       <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 py-20 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
