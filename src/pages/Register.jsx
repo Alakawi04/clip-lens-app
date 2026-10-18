@@ -6,12 +6,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import AuthLayout from "@/components/AuthLayout";
+import AuthSplit from "@/components/auth/AuthSplit";
 import GoogleIcon from "@/components/GoogleIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { useI18n } from "@/lib/i18n";
 
 export default function Register() {
+  const { t } = useI18n();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -24,7 +26,7 @@ export default function Register() {
     e.preventDefault();
     setError("");
     if (password !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("auth.mismatch"));
       return;
     }
     setLoading(true);
@@ -32,7 +34,7 @@ export default function Register() {
       await base44.auth.register({ email, password });
       setShowOtp(true);
     } catch (err) {
-      setError(err.message || "Registration failed");
+      setError(err.message || t("auth.error"));
     } finally {
       setLoading(false);
     }
@@ -48,7 +50,7 @@ export default function Register() {
       }
       window.location.href = safeReturnTo();
     } catch (err) {
-      setError(err.message || "Invalid verification code");
+      setError(err.message || t("auth.error"));
     } finally {
       setLoading(false);
     }
@@ -59,11 +61,11 @@ export default function Register() {
     try {
       await base44.auth.resendOtp(email);
       toast({
-        title: "Code sent",
-        description: "Check your email for the new code.",
+        title: t("auth.otp.toastTitle"),
+        description: t("auth.otp.toastDesc"),
       });
     } catch (err) {
-      setError(err.message || "Failed to resend code");
+      setError(err.message || t("auth.error"));
     }
   };
 
@@ -73,13 +75,13 @@ export default function Register() {
 
   if (showOtp) {
     return (
-      <AuthLayout
+      <AuthSplit
         icon={Mail}
-        title="Verify your email"
-        subtitle={`We sent a code to ${email}`}
+        title={t("auth.otp.title")}
+        subtitle={`${t("auth.otp.sent")} ${email}`}
       >
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
             {error}
           </div>
         )}
@@ -102,53 +104,53 @@ export default function Register() {
           </InputOTP>
         </div>
         <Button
-          className="w-full h-12 font-medium"
+          className="w-full h-12 font-semibold"
           onClick={handleVerify}
           disabled={loading || otpCode.length < 6}
         >
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Verifying...
+              {t("auth.otp.verifying")}
             </>
           ) : (
-            "Verify"
+            t("auth.otp.verify")
           )}
         </Button>
         <p className="text-center text-sm text-muted-foreground mt-4">
-          Didn't receive the code?{" "}
+          {t("auth.otp.resendQ")}{" "}
           <button onClick={handleResend} className="text-primary font-medium hover:underline">
-            Resend
+            {t("auth.otp.resend")}
           </button>
         </p>
-      </AuthLayout>
+      </AuthSplit>
     );
   }
 
   return (
-    <AuthLayout
+    <AuthSplit
       icon={UserPlus}
-      title="Create your account"
-      subtitle="Create a free account to analyze videos and save your results"
+      title={t("auth.register.title")}
+      subtitle={t("auth.register.subtitle")}
       footer={
         <>
-          Already have an account?{" "}
+          {t("auth.register.hasAccount")}{" "}
           <Link
             to={"/login" + (safeReturnTo() !== "/" ? "?returnTo=" + encodeURIComponent(safeReturnTo()) : "")}
             className="text-primary font-medium hover:underline"
           >
-            Log in
+            {t("auth.login.submit")}
           </Link>
         </>
       }
     >
       <Button
         variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6"
+        className="w-full h-12 text-sm font-medium mb-6 transition-all hover:border-primary/50 hover:bg-secondary active:scale-[0.98]"
         onClick={handleGoogle}
       >
         <GoogleIcon className="w-5 h-5 me-2" />
-        Continue with Google
+        {t("auth.google")}
       </Button>
 
       <div className="relative mb-6">
@@ -156,19 +158,19 @@ export default function Register() {
           <div className="w-full border-t border-border" />
         </div>
         <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">or</span>
+          <span className="bg-card px-3 text-muted-foreground">{t("auth.or")}</span>
         </div>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
           {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
+          <Label htmlFor="email" className="text-sm font-medium text-foreground">{t("auth.email")}</Label>
           <div className="relative">
             <Mail className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -185,7 +187,7 @@ export default function Register() {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password" className="text-sm font-medium text-foreground">{t("auth.password")}</Label>
           <div className="relative">
             <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -200,10 +202,10 @@ export default function Register() {
               minLength={8}
             />
           </div>
-          <p className="text-xs text-muted-foreground">Use at least 8 characters.</p>
+          <p className="text-xs text-muted-foreground">{t("auth.register.minChars")}</p>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirm">Confirm Password</Label>
+          <Label htmlFor="confirm" className="text-sm font-medium text-foreground">{t("auth.confirmPassword")}</Label>
           <div className="relative">
             <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -218,17 +220,17 @@ export default function Register() {
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <Button type="submit" className="w-full h-12 font-semibold" disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Creating account...
+              {t("auth.register.loading")}
             </>
           ) : (
-            "Create account"
+            t("auth.register.submit")
           )}
         </Button>
       </form>
-    </AuthLayout>
+    </AuthSplit>
   );
 }

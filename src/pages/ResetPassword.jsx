@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Lock, Loader2, AlertTriangle } from "lucide-react";
-import AuthLayout from "@/components/AuthLayout";
+import AuthSplit from "@/components/auth/AuthSplit";
+import { useI18n } from "@/lib/i18n";
 
 export default function ResetPassword() {
+  const { t } = useI18n();
   const [searchParams] = useSearchParams();
   const resetToken = searchParams.get("token");
 
@@ -20,7 +22,7 @@ export default function ResetPassword() {
     e.preventDefault();
     setError("");
     if (newPassword !== confirmPassword) {
-      setError("Passwords do not match");
+      setError(t("auth.mismatch"));
       return;
     }
     setLoading(true);
@@ -28,7 +30,7 @@ export default function ResetPassword() {
       await base44.auth.resetPassword({ resetToken, newPassword });
       window.location.href = "/login";
     } catch (err) {
-      setError(err.message || "Failed to reset password");
+      setError(err.message || t("auth.error"));
     } finally {
       setLoading(false);
     }
@@ -36,37 +38,37 @@ export default function ResetPassword() {
 
   if (!resetToken) {
     return (
-      <AuthLayout
+      <AuthSplit
         icon={AlertTriangle}
-        title="Invalid reset link"
-        subtitle="This password reset link is missing or invalid"
+        title={t("auth.reset.invalid.title")}
+        subtitle={t("auth.reset.invalid.subtitle")}
         footer={
           <Link to="/forgot-password" className="text-primary font-medium hover:underline">
-            Request a new link
+            {t("auth.reset.newLink")}
           </Link>
         }
       >
         <p className="text-sm text-foreground text-center">
-          The link you used appears to be incomplete. Please request a new password reset email.
+          {t("auth.reset.invalid.body")}
         </p>
-      </AuthLayout>
+      </AuthSplit>
     );
   }
 
   return (
-    <AuthLayout
+    <AuthSplit
       icon={Lock}
-      title="New password"
-      subtitle="Enter your new password below"
+      title={t("auth.reset.title")}
+      subtitle={t("auth.reset.subtitle")}
     >
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
+        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
           {error}
         </div>
       )}
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="password">New Password</Label>
+          <Label htmlFor="password" className="text-sm font-medium text-foreground">{t("auth.reset.newPassword")}</Label>
           <div className="relative">
             <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -83,7 +85,7 @@ export default function ResetPassword() {
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="confirm">Confirm Password</Label>
+          <Label htmlFor="confirm" className="text-sm font-medium text-foreground">{t("auth.confirmPassword")}</Label>
           <div className="relative">
             <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
             <Input
@@ -98,17 +100,17 @@ export default function ResetPassword() {
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-medium" disabled={loading}>
+        <Button type="submit" className="w-full h-12 font-semibold" disabled={loading}>
           {loading ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Resetting...
+              {t("auth.reset.loading")}
             </>
           ) : (
-            "Reset password"
+            t("auth.reset.submit")
           )}
         </Button>
       </form>
-    </AuthLayout>
+    </AuthSplit>
   );
 }

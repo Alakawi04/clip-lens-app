@@ -12,11 +12,14 @@ import { useAuth } from '@/lib/AuthContext';
 import { useScrolled } from '@/hooks/use-scrolled';
 
 // Floating brand mark + account controls, with the tubelight pill below it.
-// On scroll both ease into a lighter, slimmer version of themselves — never away.
+// At the very top of the page everything sits large and labeled (word on the
+// profile chip, Dark/Light on the theme toggle, icons + labels in the pill).
+// On scroll it all eases back into the normal, slimmer version — never away.
 export default function Navbar() {
   const { t } = useI18n();
   const scrolled = useScrolled();
   const { isAuthenticated } = useAuth();
+  const expanded = !scrolled;
 
   const items = [
     { name: t('nav.home'), to: '/', icon: Home },
@@ -37,24 +40,24 @@ export default function Navbar() {
         <div
           className={cn(
             'mx-auto flex max-w-7xl items-center justify-between px-4 transition-all duration-500 sm:px-6 lg:px-8',
-            scrolled ? 'gap-0 pt-1.5' : 'gap-2 pt-3 sm:pt-4'
+            scrolled ? 'gap-0 pt-1.5' : 'gap-3 pt-4 sm:pt-5'
           )}
         >
           <Link
             to="/"
             className="min-w-0 shrink transition-transform duration-500 hover:scale-105 active:scale-95"
           >
-            <Logo className={cn('transition-all duration-500', scrolled ? 'h-7 w-7' : 'h-9 w-9')} />
+            <Logo className={cn('transition-all duration-500', scrolled ? 'h-7 w-7' : 'h-12 w-12')} />
           </Link>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <ThemeToggle />
-            <AccountMenu />
+            <ThemeToggle showLabel={expanded} />
+            <AccountMenu showLabel={expanded} />
           </div>
         </div>
       </motion.div>
 
-      <NavBar items={items} compact={scrolled} />
+      <NavBar items={items} compact={scrolled} expanded={expanded} />
     </>
   );
 }

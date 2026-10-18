@@ -17,7 +17,7 @@ const LANGS = [
 ];
 
 // iOS-style account menu: avatar chip + glass dropdown (language lives in here).
-export default function AccountMenu() {
+export default function AccountMenu({ showLabel = false }) {
   const { user, isAuthenticated, logout } = useAuth();
   const { t, lang, setLang } = useI18n();
   const navigate = useNavigate();
@@ -63,6 +63,9 @@ export default function AccountMenu() {
           <span className="grid h-7 w-7 place-items-center rounded-full brand-gradient text-white">
             <UserIcon className="h-3.5 w-3.5" />
           </span>
+        )}
+        {showLabel && (
+          <span className="hidden text-xs font-semibold sm:inline">{t('nav.profile')}</span>
         )}
         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>

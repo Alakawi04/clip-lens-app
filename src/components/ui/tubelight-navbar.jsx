@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 
 // Floating "tubelight" pill navigation — a soft lamp glides under the active item.
 // When `compact` it eases into a slimmer, lighter version of itself: it stays put.
-export function NavBar({ items = [], className, compact = false }) {
+export function NavBar({ items = [], className, compact = false, expanded = false }) {
   const location = useLocation();
   const current = `${location.pathname}${location.search}`;
 
@@ -26,7 +26,9 @@ export function NavBar({ items = [], className, compact = false }) {
           'flex items-center rounded-full border backdrop-blur-xl transition-all duration-500',
           compact
             ? 'gap-0.5 border-border/50 bg-card/40 px-1 py-0.5 shadow-none'
-            : 'gap-1 border-border bg-card/70 px-1 py-1 shadow-float'
+            : expanded
+              ? 'gap-1.5 border-border bg-card/70 px-1.5 py-1.5 shadow-float'
+              : 'gap-1 border-border bg-card/70 px-1 py-1 shadow-float'
         )}
       >
         {items.map((item) => {
@@ -39,13 +41,22 @@ export function NavBar({ items = [], className, compact = false }) {
               to={item.to}
               className={cn(
                 'relative cursor-pointer rounded-full font-semibold transition-all duration-500',
-                compact ? 'px-4 py-1.5 text-[13px]' : 'px-5 py-2 text-sm',
+                compact ? 'px-4 py-1.5 text-[13px]' : expanded ? 'px-5 py-2.5 text-sm md:px-6 md:text-base' : 'px-5 py-2 text-sm',
                 'text-muted-foreground hover:text-primary',
                 isActive && 'text-primary'
               )}
             >
-              <span className="hidden md:inline">{item.name}</span>
-              <span className="md:hidden">{Icon ? <Icon size={18} strokeWidth={2.5} /> : item.name}</span>
+              {expanded ? (
+                <span className="inline-flex items-center gap-1.5">
+                  {Icon && <Icon className="h-4 w-4 md:hidden" size={16} strokeWidth={2.5} aria-hidden="true" />}
+                  {item.name}
+                </span>
+              ) : (
+                <>
+                  <span className="hidden md:inline">{item.name}</span>
+                  <span className="md:hidden">{Icon ? <Icon size={18} strokeWidth={2.5} /> : item.name}</span>
+                </>
+              )}
               {isActive && (
                 <motion.div
                   layoutId="lamp"
