@@ -9,8 +9,8 @@ import { useI18n } from '@/lib/i18n';
 export default function Hero() {
   const { t } = useI18n();
   return (
-    <section className="relative overflow-hidden">
-      <div className="mx-auto grid max-w-7xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:py-20 lg:px-8">
+    <section className="relative flex min-h-[100svh] items-center overflow-hidden lg:snap-start">
+      <div className="mx-auto grid w-full max-w-7xl items-center gap-10 px-4 pb-14 pt-32 sm:px-6 lg:grid-cols-2 lg:gap-8 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}

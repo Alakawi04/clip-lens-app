@@ -340,10 +340,10 @@
   .hover-3d-sm,
   .btn-3d {
     transition:
-      transform 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-      box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1),
-      border-color 0.4s ease,
-      filter 0.3s ease;
+      transform 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.6s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.6s ease,
+      filter 0.45s ease;
   }
 
   .hover-3d {
@@ -373,12 +373,13 @@
   }
 
   .btn-3d:hover {
-    transform: translateY(-2px) scale(1.03);
-    box-shadow: 0 18px 34px -12px hsl(var(--primary) / 0.6);
-    filter: brightness(1.08);
+    transform: translateY(-2px) scale(1.02);
+    box-shadow:
+      0 14px 28px -12px hsl(var(--primary) / 0.55),
+      0 0 0 1px hsl(var(--primary) / 0.28);
   }
   .btn-3d:active {
-    transform: translateY(0) scale(0.96);
+    transform: translateY(0) scale(0.97);
   }
 }
 
@@ -401,7 +402,7 @@
   --spark-bg: hsl(var(--primary));
   --spark-bg: color-mix(in srgb, hsl(var(--primary)) 72%, black);
   --border_radius: 9999px;
-  --transtion: 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+  --transtion: 0.6s cubic-bezier(0.22, 1, 0.36, 1);
 
   cursor: pointer;
   position: relative;
@@ -570,22 +571,23 @@
   position: relative;
   z-index: 10;
 
-  background-image: linear-gradient(
-    90deg,
-    hsla(0 0% 100% / 1) 0%,
-    hsla(0 0% 100% / var(--active, 0)) 120%
-  );
-  background-clip: text;
-
   font-size: 0.95rem;
   font-weight: 600;
-  color: transparent;
+  color: hsl(0 0% 100%);
+  text-shadow: 0 1px 2px hsl(0 0% 0% / 0.25);
 }
 
 /* ---- 3D fly hover: opt-in only (interactive cards, chips, buttons) ----
    Standalone text (headings) intentionally gets no hover effect. */
 .fly-3d {
   transform-origin: center;
-  transition: transform 0.45s cubic-bezier(0.22, 1, 0.36, 1), text-shadow 0.45s ease;
+  transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1), text-shadow 0.6s ease;
   will-change: transform;
+}
+
+/* ---- Full-page sections on desktop: gentle one-section scrolling ---- */
+@media (min-width: 1024px) {
+  html.snap-scroll {
+    scroll-snap-type: y proximity;
+  }
 }

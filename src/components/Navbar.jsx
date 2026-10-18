@@ -28,20 +28,20 @@ export default function Navbar() {
       <motion.div
         className="fixed inset-x-0 top-0 z-40"
         initial={false}
-        animate={{ scale: scrolled ? 0.96 : 1, opacity: scrolled ? 0.88 : 1 }}
-        transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+        animate={{ scale: scrolled ? 0.9 : 1, opacity: scrolled ? 0.92 : 1 }}
+        transition={{ type: 'spring', stiffness: 110, damping: 20 }}
       >
         <div
           className={cn(
-            'mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 transition-all duration-500 sm:px-6 lg:px-8',
-            scrolled ? 'pt-2' : 'pt-3 sm:pt-4'
+            'mx-auto flex max-w-7xl items-center justify-between px-4 transition-all duration-500 sm:px-6 lg:px-8',
+            scrolled ? 'gap-0 pt-1.5' : 'gap-2 pt-3 sm:pt-4'
           )}
         >
           <Link
             to="/"
-            className="min-w-0 shrink transition-transform duration-300 hover:scale-105 active:scale-95"
+            className="min-w-0 shrink transition-transform duration-500 hover:scale-105 active:scale-95"
           >
-            <Logo className={scrolled ? 'h-8 w-8' : 'h-9 w-9'} />
+            <Logo className={cn('transition-all duration-500', scrolled ? 'h-7 w-7' : 'h-9 w-9')} />
           </Link>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">

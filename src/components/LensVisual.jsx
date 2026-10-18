@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion, useMotionValue, useSpring } from 'framer-motion';
 import { Play, Sparkles, X } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
@@ -14,12 +14,14 @@ const FALLBACKS = [
 
 // Stack slots (pos 0 = front). x/y in % of card size, z in px depth.
 const SLOTS = [
-  { x: 0, y: 0, z: 70, r: 0, s: 1, o: 1 },
-  { x: -18, y: -16, z: -30, r: -10, s: 0.88, o: 0.95 },
-  { x: 19, y: 14, z: -70, r: 9, s: 0.8, o: 0.9 },
-  { x: -29, y: 22, z: -100, r: -14, s: 0.73, o: 0.85 },
+  { x: 0, y: 0, z: 90, r: 0, s: 1, o: 1 },
+  { x: -24, y: -22, z: -45, r: -14, s: 0.88, o: 0.95 },
+  { x: 26, y: 18, z: -95, r: 12, s: 0.78, o: 0.9 },
+  { x: -38, y: 30, z: -145, r: -18, s: 0.7, o: 0.85 },
 ];
+// Snappier while the pointer is over the deck, slow and dreamy as it settles back.
 const SPRING = { type: 'spring', stiffness: 52, damping: 20, opacity: { duration: 0.55 } };
+const SPRING_RETURN = { type: 'spring', stiffness: 22, damping: 26, opacity: { duration: 0.9 } };
 
 // A lens-inspired card deck: cards cycle automatically (the front card slides
 // out and tucks behind the deck) and spread apart on hover. Pointer tilt is
@@ -28,10 +30,15 @@ export default function LensVisual({ className = '', size = 360 }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
   const { settings } = useSiteSettings();
-  const [tilt, setTilt] = useState({ rx: 0, ry: 0 });
   const [hovered, setHovered] = useState(false);
   const [order, setOrder] = useState([0, 1, 2, 3]);
   const [zoomed, setZoomed] = useState(null);
+
+  // Tilt runs through soft springs so it eases out slowly when the pointer leaves.
+  const tiltX = useMotionValue(0);
+  const tiltY = useMotionValue(0);
+  const rx = useSpring(tiltX, { stiffness: 32, damping: 17 });
+  const ry = useSpring(tiltY, { stiffness: 32, damping: 17 });
 
   const images = useMemo(() => {
     const raw = [settings.hero_image_url, ...(settings.gallery_images || [])].filter(Boolean);
@@ -64,16 +71,17 @@ export default function LensVisual({ className = '', size = 360 }) {
     const r = el.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width - 0.5;
     const py = (e.clientY - r.top) / r.height - 0.5;
-    setTilt({ rx: py * -12, ry: px * 16 });
+    tiltX.set(py * -20);
+    tiltY.set(px * 26);
   };
 
   const targetFor = (pos) => {
     const p = SLOTS[Math.min(pos, SLOTS.length - 1)];
-    const m = hovered && pos > 0 ? 2.6 : 1;
+    const m = hovered && pos > 0 ? 3.4 : 1;
     return {
       x: `${-50 + p.x * m}%`,
       y: `${-50 + p.y * m}%`,
-      z: hovered && pos > 0 ? p.z - 25 : p.z,
+      z: hovered && pos > 0 ? p.z - 40 : p.z,
       rotate: p.r * m,
       scale: p.s,
       opacity: p.o,
@@ -86,13 +94,14 @@ export default function LensVisual({ className = '', size = 360 }) {
       onMouseMove={onMove}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => {
-        setTilt({ rx: 0, ry: 0 });
+        tiltX.set(0);
+        tiltY.set(0);
         setHovered(false);
       }}
       className={`perspective select-none aspect-square w-full ${className}`}
       style={{ maxWidth: size }}
     >
-      <div className="preserve-3d h-full w-full" style={{ transform: `rotateX(${tilt.rx}deg) rotateY(${tilt.ry}deg)` }}>
+      <motion.div className="preserve-3d h-full w-full" style={{ rotateX: rx, rotateY: ry }}>
         <motion.div
           className="preserve-3d relative h-full w-full"
           animate={reduce ? {} : { y: [0, -14, 0] }}
@@ -123,7 +132,7 @@ export default function LensVisual({ className = '', size = 360 }) {
                 className="absolute left-1/2 top-1/2 aspect-video w-[86%] cursor-pointer overflow-hidden rounded-2xl border border-border bg-card"
                 initial={false}
                 animate={targetFor(pos)}
-                transition={SPRING}
+                transition={hovered ? SPRING : SPRING_RETURN}
                 style={{
                   transformOrigin: 'center',
                   boxShadow: isFront
@@ -174,11 +183,11 @@ export default function LensVisual({ className = '', size = 360 }) {
             <div className="text-lg font-extrabold brand-text leading-none">87</div>
           </div>
         </motion.div>
-        </div>
+      </motion.div>
 
-        {/* Click a card to open it fullscreen, with a small X to go back.
+      {/* Click a card to open it fullscreen, with a small X to go back.
           Portaled to body so it escapes the perspective container. */}
-        {createPortal(
+      {createPortal(
         <AnimatePresence>
           {zoomed !== null && (
             <motion.div
@@ -206,7 +215,7 @@ export default function LensVisual({ className = '', size = 360 }) {
                   type="button"
                   onClick={() => setZoomed(null)}
                   aria-label="Close"
-                  className="absolute end-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-background/80 text-foreground shadow-float backdrop-blur transition-transform duration-300 hover:scale-110 hover:rotate-90"
+                  className="absolute end-4 top-4 grid h-10 w-10 place-items-center rounded-full bg-background/80 text-foreground shadow-float backdrop-blur transition-transform duration-500 hover:scale-110 hover:rotate-90"
                 >
                   <X className="h-5 w-5" />
                 </button>
@@ -215,7 +224,7 @@ export default function LensVisual({ className = '', size = 360 }) {
           )}
         </AnimatePresence>,
         document.body
-        )}
-        </div>
-        );
-        }
+      )}
+    </div>
+  );
+}

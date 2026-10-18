@@ -9,7 +9,7 @@ export default function BeforeAfter() {
   const { t } = useI18n();
   const { settings } = useSiteSettings();
   return (
-    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
+    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:flex lg:min-h-screen lg:flex-col lg:justify-center lg:snap-start lg:px-8">
       <div className="overflow-hidden rounded-3xl border border-border bg-card p-6 shadow-soft sm:p-10">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="fly-3d font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('preview.title')}</h2>

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useReducedMotion } from 'framer-motion';
 
 const SELECTOR = '.hover-3d, .hover-3d-sm, .btn-3d';
-const EASE = 0.16;
+const EASE = 0.1;
 
 // Pointer-follow 3D lift for anything with a hover class: while the cursor is
 // over an element it flies toward it (tilt from the cursor offset, lift, depth
