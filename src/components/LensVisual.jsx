@@ -25,6 +25,14 @@ const SLOTS = [
   { x: 15, y: 27, z: -95, r: 8, s: 0.9, o: 0.92 },
   { x: -7, y: 42, z: -145, r: -6, s: 0.86, o: 0.88 },
 ];
+// Where each back card flies on hover — one distinct spot each, fanned
+// around the front card instead of piling onto the same place.
+const HOVER_SLOTS = [
+  { x: 0, y: 0, z: 90, r: 0 },
+  { x: -30, y: -46, z: 60, r: -14 },
+  { x: 34, y: 12, z: 30, r: 13 },
+  { x: -4, y: 56, z: 0, r: 7 },
+];
 // Snappier while the pointer is over the deck, slow and dreamy as it settles back.
 const SPRING = { type: 'spring', stiffness: 170, damping: 20, opacity: { duration: 0.35 } };
 const SPRING_RETURN = { type: 'spring', stiffness: 22, damping: 26, opacity: { duration: 0.9 } };
@@ -84,12 +92,12 @@ export default function LensVisual({ className = '', size = 360 }) {
 
   const targetFor = (pos) => {
     const p = SLOTS[Math.min(pos, SLOTS.length - 1)];
-    const m = hovered && pos > 0 ? 2.2 : 1;
+    const h = hovered && pos > 0 ? HOVER_SLOTS[Math.min(pos, HOVER_SLOTS.length - 1)] : null;
     return {
-      x: `${-50 + p.x * m}%`,
-      y: `${-50 + p.y * m}%`,
-      z: hovered && pos > 0 ? p.z - 22 : p.z,
-      rotate: p.r * m,
+      x: `${-50 + (h ? h.x : p.x)}%`,
+      y: `${-50 + (h ? h.y : p.y)}%`,
+      z: h ? h.z : p.z,
+      rotate: h ? h.r : p.r,
       scale: p.s,
       opacity: p.o,
     };
