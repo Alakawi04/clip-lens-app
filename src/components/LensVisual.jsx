@@ -21,17 +21,17 @@ const FALLBACKS = [
 // card rises one slot up — the new front card climbing over the brand mark.
 const SLOTS = [
   { x: 0, y: 0, z: 90, r: 0, s: 1, o: 1 },
-  { x: -16, y: 13, z: -45, r: -7, s: 0.95, o: 0.96 },
-  { x: 15, y: 27, z: -95, r: 8, s: 0.9, o: 0.92 },
-  { x: -7, y: 42, z: -145, r: -6, s: 0.86, o: 0.88 },
+  { x: -16, y: 13, z: -25, r: -7, s: 0.95, o: 0.96 },
+  { x: 15, y: 27, z: -110, r: 8, s: 0.9, o: 0.92 },
+  { x: -7, y: 42, z: -195, r: -6, s: 0.86, o: 0.88 },
 ];
 // Where each back card flies on hover — one distinct spot each, fanned
 // around the front card instead of piling onto the same place.
 const HOVER_SLOTS = [
   { x: 0, y: 0, z: 90, r: 0 },
-  { x: -30, y: -46, z: 60, r: -14 },
-  { x: 34, y: 12, z: 30, r: 13 },
-  { x: -4, y: 56, z: 0, r: 7 },
+  { x: -30, y: -46, z: 5, r: -14 },
+  { x: 34, y: 12, z: -30, r: 13 },
+  { x: -4, y: 56, z: -60, r: 7 },
 ];
 // Snappier while the pointer is over the deck, slow and dreamy as it settles back.
 const SPRING = { type: 'spring', stiffness: 170, damping: 20, opacity: { duration: 0.35 } };
@@ -137,11 +137,10 @@ export default function LensVisual({ className = '', size = 360 }) {
             style={{ transform: 'translate(-50%, -50%) rotate(9deg) translateZ(-190px)' }}
           />
 
-          {/* Circular backdrop — a soft lens disc right behind the front card.
-              Cards dropping to the back slots settle behind it, so nothing
-              shows through the front of the deck. */}
+          {/* Ring backdrop — a thin circular line right behind the front card.
+              Back cards always settle behind it; only the front card floats above. */}
           <div
-            className="absolute left-1/2 top-1/2 aspect-square w-[86%]"
+            className="absolute left-1/2 top-1/2 aspect-square w-[94%]"
             style={{ transform: 'translate(-50%, -50%) translateZ(10px) rotate(-6deg)' }}
           >
             <motion.div
@@ -149,9 +148,7 @@ export default function LensVisual({ className = '', size = 360 }) {
               animate={reduce ? {} : { y: [0, -12, 0] }}
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <div className="absolute inset-0 rounded-full bg-primary/25 blur-3xl" />
-              <div className="absolute inset-[8%] rounded-full border border-primary/25 bg-primary/10" />
-              <div className="absolute inset-[24%] rounded-full bg-primary/15 blur-xl" />
+              <div className="absolute inset-0 rounded-full border-2 border-primary/25" />
             </motion.div>
           </div>
 
