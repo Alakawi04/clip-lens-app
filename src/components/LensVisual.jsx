@@ -29,9 +29,9 @@ const SLOTS = [
 // around the front card instead of piling onto the same place.
 const HOVER_SLOTS = [
   { x: 0, y: 0, z: 130, r: 0 },
-  { x: -32, y: -48, z: 20, r: -16 },
-  { x: 36, y: 12, z: -55, r: 15 },
-  { x: -4, y: 56, z: -115, r: 8 },
+  { x: -46, y: -64, z: 35, r: -16 },
+  { x: 52, y: 18, z: -40, r: 15 },
+  { x: -6, y: 78, z: -105, r: 8 },
 ];
 // Snappier while the pointer is over the deck, slow and dreamy as it settles back.
 const SPRING = { type: 'spring', stiffness: 170, damping: 20, opacity: { duration: 0.35 } };
@@ -159,17 +159,29 @@ export default function LensVisual({ className = '', size = 360 }) {
               <motion.div
                 key={imgIndex}
                 onClick={() => setZoomed(imgIndex)}
-                className="absolute left-1/2 top-1/2 aspect-video w-[92%] cursor-pointer overflow-hidden rounded-2xl border-2 border-border bg-card"
+                className="preserve-3d absolute left-1/2 top-1/2 aspect-video w-[92%] cursor-pointer"
                 initial={false}
                 animate={targetFor(pos)}
                 transition={hovered ? SPRING : SPRING_RETURN}
-                style={{
-                  transformOrigin: 'center',
-                  boxShadow: isFront
-                    ? '0 30px 70px -14px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(0 0% 100% / 0.08) inset, 0 -3px 0 0 hsl(0 0% 0% / 0.35) inset'
-                    : '0 16px 40px -12px hsl(0 0% 0% / 0.45), 0 -3px 0 0 hsl(0 0% 0% / 0.3) inset',
-                }}
+                style={{ transformOrigin: 'center' }}
               >
+                {/* Thickness: stacked dark plates behind the face so a tilted
+                    card reads as a solid 3D slab instead of a thin sheet. */}
+                {[14, 9, 4].map((depth) => (
+                  <div
+                    key={depth}
+                    className="absolute inset-0 rounded-2xl border-2 border-border/60"
+                    style={{ transform: `translateZ(${-depth}px)`, background: 'hsl(var(--card) / 0.85)', filter: 'brightness(0.62)' }}
+                  />
+                ))}
+                <div
+                  className="relative h-full w-full overflow-hidden rounded-2xl border-2 border-border bg-card"
+                  style={{
+                    boxShadow: isFront
+                      ? '0 30px 70px -14px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(0 0% 100% / 0.08) inset, 0 -3px 0 0 hsl(0 0% 0% / 0.35) inset'
+                      : '0 16px 40px -12px hsl(0 0% 0% / 0.45), 0 -3px 0 0 hsl(0 0% 0% / 0.3) inset',
+                  }}
+                >
                 <Image src={images[imgIndex]} alt="" className="h-full w-full object-cover" />
                 {isFront && (
                   <>
@@ -182,6 +194,7 @@ export default function LensVisual({ className = '', size = 360 }) {
                     />
                   </>
                 )}
+                </div>
               </motion.div>
             );
           })}
@@ -189,7 +202,7 @@ export default function LensVisual({ className = '', size = 360 }) {
           {/* Floating AI-review chip */}
           <div
             className="absolute -end-1 top-[16%] flex items-center gap-2 rounded-2xl border border-border bg-card/90 px-3 py-2 shadow-float backdrop-blur"
-            style={{ transform: 'translateZ(100px)' }}
+            style={{ transform: 'translateZ(240px)' }}
           >
             <span className="grid h-8 w-8 place-items-center rounded-xl brand-gradient text-white">
               <Sparkles className="h-3.5 w-3.5" />
@@ -204,7 +217,7 @@ export default function LensVisual({ className = '', size = 360 }) {
           {/* Floating insights chip */}
           <div
             className="absolute -start-2 bottom-[16%] flex items-center gap-2 rounded-2xl border border-border bg-card/90 px-3 py-2 shadow-float backdrop-blur"
-            style={{ transform: 'translateZ(90px)' }}
+            style={{ transform: 'translateZ(230px)' }}
           >
             <span className="grid h-8 w-8 place-items-center rounded-xl bg-secondary text-primary">
               <BarChart3 className="h-3.5 w-3.5" />
