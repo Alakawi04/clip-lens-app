@@ -73,14 +73,19 @@ export default function Progress() {
 
       if (p >= 100) {
         clearInterval(iv);
-        const result = generateMockResult({ sourceType: record.source_type, sourceLabel: record.source_label });
+        const result = generateMockResult({
+          sourceType: record.source_type,
+          sourceLabel: record.source_label,
+          stats: record.youtube_stats,
+        });
         try {
           await base44.entities.Analysis.update(id, {
             status: 'completed',
             progress: 100,
             score: result.score,
             summary: result.summary,
-            thumbnail_url: result.thumbnail_url,
+            // For YouTube reviews, keep the real video thumbnail we fetched.
+            thumbnail_url: record.thumbnail_url || result.thumbnail_url,
             title_suggestions: result.title_suggestions,
             improvements: result.improvements,
           });

@@ -26,12 +26,39 @@ export default function Analyze() {
   const handleStart = async ({ sourceType, sourceLabel, sourceUrl }) => {
     setSubmitting(true);
     try {
+      let label = sourceLabel;
+      let extra = {};
+      // For YouTube links, fetch the video's public stats first so the
+      // analysis is grounded in real numbers (views, likes, date…).
+      if (sourceType === 'youtube' && sourceUrl) {
+        try {
+          const res = await base44.functions.invoke('fetchYouTubeStats', { url: sourceUrl });
+          const s = res?.data;
+          if (s && !s.error) {
+            label = `YouTube · ${s.title}`;
+            extra = {
+              thumbnail_url: s.thumbnail_url || '',
+              duration_seconds: s.duration_seconds || null,
+              youtube_stats: {
+                views: s.views,
+                likes: s.likes,
+                comments: s.comments,
+                channel: s.channel || '',
+                published_at: s.published_at || '',
+              },
+            };
+          }
+        } catch {
+          // couldn't fetch stats — continue with the raw link
+        }
+      }
       const rec = await base44.entities.Analysis.create({
         source_type: sourceType,
-        source_label: sourceLabel,
+        source_label: label,
         source_url: sourceUrl || '',
         status: 'uploading',
         progress: 0,
+        ...extra,
       });
       navigate(`/progress/${rec.id}`);
     } catch {
@@ -96,7 +123,9 @@ export default function Analyze() {
       </div>
 
       {submitting && (
-        <p className="mt-4 text-center text-sm text-muted-foreground">{t('common.loading')}</p>
+        <p className="mt-4 text-center text-sm text-muted-foreground">
+          {tab === 'link' ? t('add.link.fetching') : t('common.loading')}
+        </p>
       )}
     </div>
   );

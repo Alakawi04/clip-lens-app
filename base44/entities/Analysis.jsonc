@@ -87,6 +87,10 @@
       "type": "number",
       "description": "Video duration in seconds when known."
     },
+    "youtube_stats": {
+      "type": "object",
+      "description": "Public YouTube stats fetched for the analyzed link: { views, likes, comments, channel, published_at }. Private Studio metrics (impressions/CTR) are not available from a public link."
+    },
     "error_message": {
       "type": "string",
       "description": "Failure reason when status is failed."

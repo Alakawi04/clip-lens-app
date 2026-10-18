@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, Sparkles, ArrowLeft, Info, Lightbulb, ImageDown } from 'lucide-react';
+import { Download, Sparkles, ArrowLeft, Info, Lightbulb, ImageDown, Eye, ThumbsUp, Percent, MessageSquare, Calendar, User } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import ScoreRing from '@/components/ScoreRing';
 import TitleList from '@/components/results/TitleList';
@@ -70,6 +70,18 @@ export default function Results() {
     : score >= 60 ? 'bg-amber-500/15 text-amber-500'
     : 'bg-red-500/15 text-red-500';
   const locale = lang === 'ar' ? 'ar' : 'en-US';
+  const stats = record.youtube_stats;
+  const fmtNum = (n) => new Intl.NumberFormat(locale).format(n);
+  const likeRate =
+    stats && stats.views > 0 && stats.likes != null
+      ? `${((stats.likes / stats.views) * 100).toFixed(1)}%`
+      : null;
+  const StatChip = ({ icon: ChipIcon, children }) => (
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card px-3 py-1 text-xs font-medium text-foreground">
+      <ChipIcon className="h-3.5 w-3.5 text-primary" />
+      {children}
+    </span>
+  );
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:py-14">
@@ -96,6 +108,31 @@ export default function Results() {
             </span>
           )}
         </div>
+
+        {/* Public YouTube stats the analysis was grounded in */}
+        {stats && (stats.views != null || stats.likes != null) && (
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              {t('results.stats')}
+            </span>
+            {stats.views != null && (
+              <StatChip icon={Eye}>{fmtNum(stats.views)} {t('results.views')}</StatChip>
+            )}
+            {stats.likes != null && (
+              <StatChip icon={ThumbsUp}>{fmtNum(stats.likes)} {t('results.likes')}</StatChip>
+            )}
+            {likeRate && <StatChip icon={Percent}>{likeRate} {t('results.likeRate')}</StatChip>}
+            {stats.comments != null && (
+              <StatChip icon={MessageSquare}>{fmtNum(stats.comments)} {t('results.comments')}</StatChip>
+            )}
+            {stats.channel && <StatChip icon={User}>{stats.channel}</StatChip>}
+            {stats.published_at && (
+              <StatChip icon={Calendar}>
+                {t('results.published')}: {new Date(stats.published_at).toLocaleDateString(locale, { year: 'numeric', month: 'short' })}
+              </StatChip>
+            )}
+          </div>
+        )}
       </motion.div>
 
       <div className="mt-8 grid gap-5 lg:grid-cols-3">

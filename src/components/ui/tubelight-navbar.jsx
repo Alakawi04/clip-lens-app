@@ -47,10 +47,10 @@ export function NavBar({ items = [], className, compact = false, expanded = fals
               )}
             >
               {expanded ? (
-                <span className="inline-flex items-center gap-1.5">
-                  {Icon && <Icon className="h-4 w-4 md:hidden" size={16} strokeWidth={2.5} aria-hidden="true" />}
-                  {item.name}
-                </span>
+                <>
+                  {Icon && <Icon className="h-4 w-4 md:hidden" size={18} strokeWidth={2.5} aria-hidden="true" />}
+                  <span className="hidden md:inline">{item.name}</span>
+                </>
               ) : (
                 <>
                   <span className="hidden md:inline">{item.name}</span>

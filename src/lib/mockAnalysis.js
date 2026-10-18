@@ -64,13 +64,27 @@ export function pickThumbnail(seed) {
 }
 
 // Returns the full result payload (score, summary, thumbnail, titles, improvements).
-export function generateMockResult({ sourceType, sourceLabel }) {
-  const score = 62 + Math.floor(Math.random() * 30); // 62-91
+// When public YouTube stats are available, the result is grounded in them:
+// engagement (like rate) nudges the score and leads the summary.
+export function generateMockResult({ sourceType, sourceLabel, stats }) {
   const lang = (typeof window !== 'undefined' && document.documentElement.lang === 'ar') ? 'ar' : 'en';
+  let score = 62 + Math.floor(Math.random() * 30); // 62-91
   const summaries = SUMMARIES[lang];
+  let summary = summaries[Math.floor(Math.random() * summaries.length)];
+
+  if (stats && stats.views > 0 && stats.likes != null) {
+    const likeRate = (stats.likes / stats.views) * 100;
+    score = Math.max(35, Math.min(97, score + Math.round((likeRate - 3) * 2)));
+    const fmt = (n) => new Intl.NumberFormat(lang === 'ar' ? 'ar' : 'en-US').format(n);
+    const rateStr = `${likeRate.toFixed(1)}${lang === 'ar' ? '٪' : '%'}`;
+    summary = (lang === 'ar'
+      ? `حسب إحصائيات يوتيوب العامة: ${fmt(stats.views)} مشاهدة و${fmt(stats.likes)} إعجابًا بنسبة إعجاب ${rateStr}. `
+      : `Based on public YouTube stats: ${fmt(stats.views)} views and ${fmt(stats.likes)} likes (${rateStr} like rate). `) + summary;
+  }
+
   return {
     score,
-    summary: summaries[Math.floor(Math.random() * summaries.length)],
+    summary,
     thumbnail_url: pickThumbnail(sourceLabel || sourceType),
     title_suggestions: TITLE_BANK,
     improvements: IMPROVEMENTS,
