@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Upload, Sparkles, Check } from 'lucide-react';
+import { Upload, Sparkles, LineChart, Rocket } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 
 export default function Steps() {
@@ -8,18 +8,22 @@ export default function Steps() {
   const steps = [
     { icon: Upload, title: t('steps.1.title'), desc: t('steps.1.desc') },
     { icon: Sparkles, title: t('steps.2.title'), desc: t('steps.2.desc') },
-    { icon: Check, title: t('steps.3.title'), desc: t('steps.3.desc') },
+    { icon: LineChart, title: t('steps.3.title'), desc: t('steps.3.desc') },
+    { icon: Rocket, title: t('steps.4.title'), desc: t('steps.4.desc') },
   ];
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:flex lg:min-h-screen lg:flex-col lg:justify-center lg:snap-start lg:px-8">
+    <section
+      id="how-it-works"
+      className="mx-auto max-w-7xl scroll-mt-28 px-4 py-12 sm:px-6 lg:flex lg:min-h-screen lg:flex-col lg:justify-center lg:snap-start lg:px-8"
+    >
       <div className="mx-auto max-w-2xl text-center">
         <h2 className="fly-3d font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('steps.title')}</h2>
         <p className="mt-2 text-muted-foreground">{t('steps.subtitle')}</p>
       </div>
-      <div className="relative mt-10 grid gap-6 sm:grid-cols-3">
+      <div className="relative mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {/* connector line */}
-        <div className="absolute inset-x-0 top-7 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent sm:block" />
+        <div className="absolute inset-x-12 top-7 hidden h-px bg-gradient-to-r from-transparent via-border to-transparent lg:block" />
         {steps.map((s, i) => {
           const Icon = s.icon;
           return (
@@ -28,7 +32,7 @@ export default function Steps() {
               initial={{ opacity: 0, y: 16 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
+              transition={{ duration: 0.5, delay: i * 0.08 }}
               className="relative flex flex-col items-center text-center"
             >
               <div className="hover-3d-sm relative grid h-14 w-14 place-items-center rounded-2xl border border-border bg-card shadow-soft">

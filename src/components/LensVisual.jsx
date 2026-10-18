@@ -77,11 +77,11 @@ export default function LensVisual({ className = '', size = 360 }) {
 
   const targetFor = (pos) => {
     const p = SLOTS[Math.min(pos, SLOTS.length - 1)];
-    const m = hovered && pos > 0 ? 3.4 : 1;
+    const m = hovered && pos > 0 ? 2.2 : 1;
     return {
       x: `${-50 + p.x * m}%`,
       y: `${-50 + p.y * m}%`,
-      z: hovered && pos > 0 ? p.z - 40 : p.z,
+      z: hovered && pos > 0 ? p.z - 22 : p.z,
       rotate: p.r * m,
       scale: p.s,
       opacity: p.o,

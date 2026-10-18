@@ -8,6 +8,7 @@ import AccountMenu from './AccountMenu';
 import { NavBar } from '@/components/ui/tubelight-navbar';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/lib/i18n';
+import { useAuth } from '@/lib/AuthContext';
 import { useScrolled } from '@/hooks/use-scrolled';
 
 // Floating brand mark + account controls, with the tubelight pill below it.
@@ -15,12 +16,14 @@ import { useScrolled } from '@/hooks/use-scrolled';
 export default function Navbar() {
   const { t } = useI18n();
   const scrolled = useScrolled();
+  const { isAuthenticated } = useAuth();
 
   const items = [
     { name: t('nav.home'), to: '/', icon: Home },
     { name: t('nav.analyze'), to: '/analyze', icon: Sparkles },
     { name: t('nav.review'), to: '/analyze?mode=review', icon: Search },
-    { name: t('nav.history'), to: '/history', icon: HistoryIcon },
+    // History only makes sense once you can actually have analyses saved.
+    ...(isAuthenticated ? [{ name: t('nav.history'), to: '/history', icon: HistoryIcon }] : []),
   ];
 
   return (
