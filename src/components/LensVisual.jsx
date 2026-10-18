@@ -24,9 +24,9 @@ const FALLBACKS = [
 // card rises one slot up — the new front card climbing over the brand mark.
 const SLOTS = [
   { x: 0, y: 0, z: 90, r: 0, s: 1, o: 1 },
-  { x: -16, y: 13, z: -45, r: -7, s: 0.88, o: 0.95 },
-  { x: 15, y: 27, z: -95, r: 8, s: 0.79, o: 0.9 },
-  { x: -7, y: 42, z: -145, r: -6, s: 0.71, o: 0.85 },
+  { x: -16, y: 13, z: -45, r: -7, s: 0.95, o: 0.96 },
+  { x: 15, y: 27, z: -95, r: 8, s: 0.9, o: 0.92 },
+  { x: -7, y: 42, z: -145, r: -6, s: 0.86, o: 0.88 },
 ];
 // Snappier while the pointer is over the deck, slow and dreamy as it settles back.
 const SPRING = { type: 'spring', stiffness: 170, damping: 20, opacity: { duration: 0.35 } };
@@ -132,11 +132,11 @@ export default function LensVisual({ className = '', size = 360 }) {
             style={{ transform: 'translate(-50%, -50%) rotate(9deg) translateZ(-190px)' }}
           />
 
-          {/* 3D brand mark — stays in place; cycling cards drop behind it and
-              the next card rises up over it. */}
+          {/* 3D brand mark — floats behind the whole deck so cards never
+              show through it; the rising card still comes up over it. */}
           <div
             className="absolute left-1/2 top-1/2 aspect-square w-[96%]"
-            style={{ transform: 'translate(-50%, -50%) translateZ(20px) rotate(-10deg)' }}
+            style={{ transform: 'translate(-50%, -50%) translateZ(-210px) rotate(-10deg)' }}
           >
             <motion.div
               className="relative h-full w-full"
@@ -160,7 +160,7 @@ export default function LensVisual({ className = '', size = 360 }) {
               <motion.div
                 key={imgIndex}
                 onClick={() => setZoomed(imgIndex)}
-                className="absolute left-1/2 top-1/2 aspect-video w-[86%] cursor-pointer overflow-hidden rounded-2xl border border-border bg-card"
+                className="absolute left-1/2 top-1/2 aspect-video w-[92%] cursor-pointer overflow-hidden rounded-2xl border border-border bg-card"
                 initial={false}
                 animate={targetFor(pos)}
                 transition={hovered ? SPRING : SPRING_RETURN}
