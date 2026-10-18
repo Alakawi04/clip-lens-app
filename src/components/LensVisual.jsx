@@ -20,18 +20,18 @@ const FALLBACKS = [
 // straight down behind the brand mark to the bottom slot, and every other
 // card rises one slot up — the new front card climbing over the brand mark.
 const SLOTS = [
-  { x: 0, y: 0, z: 90, r: 0, s: 1, o: 1 },
-  { x: -16, y: 13, z: -25, r: -7, s: 0.95, o: 0.96 },
-  { x: 15, y: 27, z: -110, r: 8, s: 0.9, o: 0.92 },
-  { x: -7, y: 42, z: -195, r: -6, s: 0.86, o: 0.88 },
+  { x: 0, y: 0, z: 130, r: 0, s: 1, o: 1 },
+  { x: -16, y: 13, z: -50, r: -9, s: 0.95, o: 0.96 },
+  { x: 15, y: 27, z: -210, r: 11, s: 0.9, o: 0.92 },
+  { x: -7, y: 42, z: -370, r: -8, s: 0.86, o: 0.88 },
 ];
 // Where each back card flies on hover — one distinct spot each, fanned
 // around the front card instead of piling onto the same place.
 const HOVER_SLOTS = [
-  { x: 0, y: 0, z: 90, r: 0 },
-  { x: -30, y: -46, z: 5, r: -14 },
-  { x: 34, y: 12, z: -30, r: 13 },
-  { x: -4, y: 56, z: -60, r: 7 },
+  { x: 0, y: 0, z: 130, r: 0 },
+  { x: -32, y: -48, z: 20, r: -16 },
+  { x: 36, y: 12, z: -55, r: 15 },
+  { x: -4, y: 56, z: -115, r: 8 },
 ];
 // Snappier while the pointer is over the deck, slow and dreamy as it settles back.
 const SPRING = { type: 'spring', stiffness: 170, damping: 20, opacity: { duration: 0.35 } };
@@ -86,8 +86,8 @@ export default function LensVisual({ className = '', size = 360 }) {
     const r = el.getBoundingClientRect();
     const px = (e.clientX - r.left) / r.width - 0.5;
     const py = (e.clientY - r.top) / r.height - 0.5;
-    tiltX.set(py * -28);
-    tiltY.set(px * 36);
+    tiltX.set(py * -34);
+    tiltY.set(px * 46);
   };
 
   const targetFor = (pos) => {
@@ -114,7 +114,7 @@ export default function LensVisual({ className = '', size = 360 }) {
         setHovered(false);
       }}
       className={`perspective select-none aspect-square w-full ${className}`}
-      style={{ maxWidth: size }}
+      style={{ maxWidth: size, perspective: '950px' }}
     >
       <motion.div className="preserve-3d h-full w-full" style={{ rotateX: rx, rotateY: ry }}>
         <motion.div
@@ -159,15 +159,15 @@ export default function LensVisual({ className = '', size = 360 }) {
               <motion.div
                 key={imgIndex}
                 onClick={() => setZoomed(imgIndex)}
-                className="absolute left-1/2 top-1/2 aspect-video w-[92%] cursor-pointer overflow-hidden rounded-2xl border border-border bg-card"
+                className="absolute left-1/2 top-1/2 aspect-video w-[92%] cursor-pointer overflow-hidden rounded-2xl border-2 border-border bg-card"
                 initial={false}
                 animate={targetFor(pos)}
                 transition={hovered ? SPRING : SPRING_RETURN}
                 style={{
                   transformOrigin: 'center',
                   boxShadow: isFront
-                    ? '0 24px 60px -12px hsl(0 0% 0% / 0.45)'
-                    : '0 12px 34px -10px hsl(0 0% 0% / 0.4)',
+                    ? '0 30px 70px -14px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(0 0% 100% / 0.08) inset, 0 -3px 0 0 hsl(0 0% 0% / 0.35) inset'
+                    : '0 16px 40px -12px hsl(0 0% 0% / 0.45), 0 -3px 0 0 hsl(0 0% 0% / 0.3) inset',
                 }}
               >
                 <Image src={images[imgIndex]} alt="" className="h-full w-full object-cover" />
