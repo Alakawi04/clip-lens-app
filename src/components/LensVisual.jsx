@@ -6,10 +6,7 @@ import { Image } from '@/components/ui/image';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { useI18n } from '@/lib/i18n';
 
-// Brand play mark — rendered as a 3D element between the front card and the
-// rest of the deck (black background screened out via blend mode).
-const BRAND_MARK =
-  'https://media.base44.com/images/public/6ad3e668f62d5fc8e2edf17b/bd0874ffd_cliplens_logo_icon_clean_large-removebg-preview.png';
+
 
 const FALLBACKS = [
   'https://images.unsplash.com/photo-1493612276216-ee392551f8a4?auto=format&fit=crop&w=900&q=80',
@@ -132,24 +129,21 @@ export default function LensVisual({ className = '', size = 360 }) {
             style={{ transform: 'translate(-50%, -50%) rotate(9deg) translateZ(-190px)' }}
           />
 
-          {/* 3D brand mark — floats behind the whole deck so cards never
-              show through it; the rising card still comes up over it. */}
+          {/* Circular backdrop — a soft lens disc right behind the front card.
+              Cards dropping to the back slots settle behind it, so nothing
+              shows through the front of the deck. */}
           <div
-            className="absolute left-1/2 top-1/2 aspect-square w-[96%]"
-            style={{ transform: 'translate(-50%, -50%) translateZ(-210px) rotate(-10deg)' }}
+            className="absolute left-1/2 top-1/2 aspect-square w-[86%]"
+            style={{ transform: 'translate(-50%, -50%) translateZ(10px) rotate(-6deg)' }}
           >
             <motion.div
               className="relative h-full w-full"
               animate={reduce ? {} : { y: [0, -12, 0] }}
               transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
             >
-              <div className="absolute inset-6 rounded-full bg-primary/20 blur-3xl" />
-              <img
-                src={BRAND_MARK}
-                alt=""
-                draggable={false}
-                className="relative h-full w-full object-contain mix-blend-screen"
-              />
+              <div className="absolute inset-0 rounded-full bg-primary/25 blur-3xl" />
+              <div className="absolute inset-[8%] rounded-full border border-primary/25 bg-primary/10" />
+              <div className="absolute inset-[24%] rounded-full bg-primary/15 blur-xl" />
             </motion.div>
           </div>
 
