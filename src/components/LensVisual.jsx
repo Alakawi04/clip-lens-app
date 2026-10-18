@@ -6,6 +6,11 @@ import { Image } from '@/components/ui/image';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { useI18n } from '@/lib/i18n';
 
+// Brand play mark — rendered as a 3D element between the front card and the
+// rest of the deck (black background screened out via blend mode).
+const BRAND_MARK =
+  'https://media.base44.com/images/public/6ad3e668f62d5fc8e2edf17b/bd0874ffd_cliplens_logo_icon_clean_large-removebg-preview.png';
+
 const FALLBACKS = [
   'https://images.unsplash.com/photo-1493612276216-ee392551f8a4?auto=format&fit=crop&w=900&q=80',
   'https://images.unsplash.com/photo-1485846234645-a62644f84728?auto=format&fit=crop&w=900&q=80',
@@ -123,6 +128,26 @@ export default function LensVisual({ className = '', size = 360 }) {
             className="absolute left-1/2 top-1/2 aspect-video w-[105%] rounded-[2.5rem] bg-primary/10 blur-2xl"
             style={{ transform: 'translate(-50%, -50%) rotate(9deg) translateZ(-190px)' }}
           />
+
+          {/* 3D brand mark — floats right behind the front card, deck behind it */}
+          <div
+            className="absolute left-1/2 top-1/2 aspect-square w-[68%]"
+            style={{ transform: 'translate(-50%, -50%) translateZ(20px) rotate(-10deg)' }}
+          >
+            <motion.div
+              className="relative h-full w-full"
+              animate={reduce ? {} : { y: [0, -12, 0] }}
+              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
+            >
+              <div className="absolute inset-6 rounded-full bg-primary/20 blur-3xl" />
+              <img
+                src={BRAND_MARK}
+                alt=""
+                draggable={false}
+                className="relative h-full w-full object-contain mix-blend-screen"
+              />
+            </motion.div>
+          </div>
 
           {/* Card deck */}
           {order.map((imgIndex, pos) => {
