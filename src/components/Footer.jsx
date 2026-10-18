@@ -17,7 +17,12 @@ export default function Footer() {
             <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
               <Link to="/" className="hover:text-foreground transition-colors">{t('nav.home')}</Link>
               <Link to="/analyze" className="hover:text-foreground transition-colors">{t('nav.analyze')}</Link>
+              <Link to="/analyze?mode=review" className="hover:text-foreground transition-colors">{t('nav.review')}</Link>
               <Link to="/history" className="hover:text-foreground transition-colors">{t('nav.history')}</Link>
+              <span className="hidden h-4 w-px bg-border sm:inline-block" aria-hidden="true" />
+              <Link to="/privacy" className="hover:text-foreground transition-colors">{t('footer.privacy')}</Link>
+              <Link to="/terms" className="hover:text-foreground transition-colors">{t('footer.terms')}</Link>
+              <Link to="/help" className="hover:text-foreground transition-colors">{t('footer.help')}</Link>
             </nav>
             <p className="text-xs text-muted-foreground/80">© {new Date().getFullYear()} ClipLens · {t('footer.rights')}</p>
             <p className="max-w-sm text-xs text-muted-foreground/60">{t('footer.disclaimer')}</p>
