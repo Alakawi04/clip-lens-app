@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Check, Loader2, X, Sparkles, ArrowRight, Film, Scissors, Type, Wand2 } from 'lucide-react';
+import { Check, Loader2, X, Sparkles, ArrowRight, Film, Scissors, Type, Wand2, RefreshCw } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import { ANALYSIS_STAGES, generateMockResult } from '@/lib/mockAnalysis';
 import { useI18n } from '@/lib/i18n';
@@ -24,6 +24,7 @@ export default function Progress() {
   const [progress, setProgress] = useState(0);
   const [done, setDone] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [failed, setFailed] = useState(false);
   const lastStageRef = useRef(null);
 
   // load record
@@ -35,6 +36,11 @@ export default function Progress() {
         if (!active) return;
         if (rec.status === 'completed') {
           navigate(`/results/${id}`, { replace: true });
+          return;
+        }
+        if (rec.status === 'failed') {
+          setRecord(rec);
+          setFailed(true);
           return;
         }
         setRecord(rec);
@@ -49,7 +55,7 @@ export default function Progress() {
 
   // run the staged simulation
   useEffect(() => {
-    if (!record || done || notFound) return;
+    if (!record || done || notFound || failed) return;
     let p = progress;
     const iv = setInterval(async () => {
       p = Math.min(100, p + (reduce ? 12 : Math.random() * 7 + 3));
@@ -86,11 +92,21 @@ export default function Progress() {
     }, reduce ? 250 : 420);
     return () => clearInterval(iv);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [record, done, notFound]);
+  }, [record, done, notFound, failed]);
 
   const cancel = async () => {
     try { await base44.entities.Analysis.delete(id); } catch { /* ignore */ }
     navigate('/');
+  };
+
+  const retry = () => {
+    setFailed(false);
+    setProgress(0);
+    lastStageRef.current = 'uploading';
+    try {
+      base44.entities.Analysis.update(id, { status: 'uploading', progress: 0, error_message: '' }).catch(() => {});
+    } catch { /* non-blocking */ }
+    setRecord((r) => ({ ...r, status: 'uploading', progress: 0 }));
   };
 
   if (notFound) {
@@ -126,14 +142,42 @@ export default function Progress() {
           <motion.div
             animate={done ? { scale: [1, 1.15, 1] } : reduce ? {} : { scale: [1, 1.06, 1] }}
             transition={{ duration: done ? 0.6 : 2.4, repeat: done ? 0 : Infinity, ease: 'easeInOut' }}
-            className="relative grid h-20 w-20 place-items-center rounded-full brand-gradient text-white shadow-float"
+            className={`relative grid h-20 w-20 place-items-center rounded-full text-white shadow-float ${failed ? 'bg-red-500' : 'brand-gradient'}`}
           >
-            {done ? <Check className="h-9 w-9" /> : <Loader2 className="h-9 w-9 animate-spin" />}
+            {done ? <Check className="h-9 w-9" /> : failed ? <X className="h-9 w-9" /> : <Loader2 className="h-9 w-9 animate-spin" />}
           </motion.div>
         </div>
 
         <AnimatePresence mode="wait">
-          {done ? (
+          {failed ? (
+            <motion.div
+              key="failed"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+            >
+              <h1 className="font-display text-3xl font-extrabold tracking-tight">{t('progress.failed')}</h1>
+              <p className="mx-auto mt-2 max-w-md text-muted-foreground">
+                {record?.error_message || t('progress.failedDesc')}
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  onClick={retry}
+                  className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-float transition-all hover:brightness-110 active:scale-95"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  {t('progress.retry')}
+                </button>
+                <button
+                  onClick={cancel}
+                  className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3.5 text-sm font-semibold transition-all hover:bg-secondary active:scale-95"
+                >
+                  <X className="h-4 w-4" />
+                  {t('progress.cancel')}
+                </button>
+              </div>
+            </motion.div>
+          ) : done ? (
             <motion.div
               key="done"
               initial={{ opacity: 0, y: 10 }}
@@ -165,7 +209,7 @@ export default function Progress() {
         </AnimatePresence>
       </div>
 
-      {!done && (
+      {!done && !failed && (
         <>
           {/* Progress bar */}
           <div className="mt-8">

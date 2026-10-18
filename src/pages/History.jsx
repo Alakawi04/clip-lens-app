@@ -1,36 +1,44 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Trash2, ArrowRight, Clock, History as HistoryIcon, Sparkles } from 'lucide-react';
+import { Trash2, ArrowRight, Clock, History as HistoryIcon, Sparkles, Search, X } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/lib/i18n';
 
+const FIELDS = ['source_type', 'source_label', 'status', 'score', 'thumbnail_url', 'created_date'];
+
 export default function History() {
-  const { t } = useI18n();
-  const navigate = useNavigate();
+  const { t, lang } = useI18n();
   const [items, setItems] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
+  const [search, setSearch] = useState('');
+  const locale = lang === 'ar' ? 'ar' : 'en-US';
 
-  const load = useCallback(async () => {
+  // Server-side search: every query is a new filter() call with a $regex
+  // condition — never a local filter over a loaded page.
+  const load = useCallback(async (term) => {
     try {
-      const page = await base44.entities.Analysis.filter(
-        {},
-        { sort: '-created_date', limit: 50, fields: ['source_type', 'source_label', 'status', 'score', 'thumbnail_url', 'created_date'] }
-      );
+      const query = term ? { source_label: { $regex: term, $options: 'i' } } : {};
+      const page = await base44.entities.Analysis.filter(query, { sort: '-created_date', limit: 50, fields: FIELDS });
       setItems(page.items || []);
     } catch {
       setItems([]);
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    const id = setTimeout(() => load(search.trim()), 300);
+    return () => clearTimeout(id);
+  }, [search, load]);
 
   const remove = async (id) => {
     try { await base44.entities.Analysis.delete(id); } catch { /* ignore */ }
     setConfirmId(null);
     setItems((prev) => (prev || []).filter((x) => x.id !== id));
   };
+
+  const fmtDate = (d) => new Date(d).toLocaleDateString(locale, { year: 'numeric', month: 'short', day: 'numeric' });
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:py-14">
@@ -44,12 +52,43 @@ export default function History() {
         </div>
       </div>
 
+      {/* Search */}
+      <div className="relative mt-7 max-w-sm">
+        <Search className="absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+        <input
+          type="search"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder={t('history.search')}
+          aria-label={t('history.search')}
+          className="h-11 w-full rounded-full border border-border bg-card ps-10 pe-10 text-sm outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary focus:ring-2 focus:ring-ring/40"
+        />
+        {search && (
+          <button
+            type="button"
+            onClick={() => setSearch('')}
+            aria-label={t('common.cancel')}
+            className="absolute end-3 top-1/2 grid h-6 w-6 -translate-y-1/2 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          >
+            <X className="h-3.5 w-3.5" />
+          </button>
+        )}
+      </div>
+
       {items === null ? (
         <div className="mt-8 grid gap-4 sm:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-40 animate-pulse rounded-2xl border border-border bg-muted/40" />
           ))}
         </div>
+      ) : items.length === 0 && search ? (
+        <motion.p
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mt-12 text-center text-sm text-muted-foreground"
+        >
+          {t('history.noResults')}
+        </motion.p>
       ) : items.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 12 }}
@@ -101,8 +140,14 @@ export default function History() {
                   )}
                 </div>
                 <div className="p-4">
-                  <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] font-medium text-muted-foreground">
                     {a.source_type === 'youtube' ? t('recent.type.youtube') : t('recent.type.upload')}
+                    {a.created_date && (
+                      <>
+                        <span aria-hidden="true">·</span>
+                        {fmtDate(a.created_date)}
+                      </>
+                    )}
                   </div>
                   <p className="mt-1 line-clamp-1 font-semibold">{a.source_label || '—'}</p>
                 </div>

@@ -172,7 +172,7 @@ const CONTENT = {
 };
 
 export default function Info({ kind = 'privacy' }) {
-  const { lang } = useI18n();
+  const { t, lang } = useI18n();
   const navigate = useNavigate();
   const c = (CONTENT[lang] || CONTENT.en)[kind] || CONTENT.en.privacy;
   const Icon = c.icon;
@@ -184,7 +184,7 @@ export default function Info({ kind = 'privacy' }) {
         className="mb-6 inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4 rtl:rotate-180" />
-        {(CONTENT[lang] || CONTENT.en).help.sections ? null : null}
+        {t('common.back')}
       </button>
 
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
@@ -220,7 +220,7 @@ export default function Info({ kind = 'privacy' }) {
 
       <p className="mt-8 text-center text-sm text-muted-foreground">
         <Link to="/" className="font-semibold text-primary hover:underline">
-          {(CONTENT[lang] || CONTENT.en).help.title === 'Help' ? 'Back to home' : 'عودة للرئيسية'}
+          {t('results.backHome')}
         </Link>
       </p>
     </div>

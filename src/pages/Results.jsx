@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, Pencil, Sparkles, ArrowLeft, Info, Lightbulb, ImageDown } from 'lucide-react';
+import { Download, Sparkles, ArrowLeft, Info, Lightbulb, ImageDown } from 'lucide-react';
 import { base44 } from '@/api/base44Client';
 import ScoreRing from '@/components/ScoreRing';
 import TitleList from '@/components/results/TitleList';
@@ -27,7 +27,7 @@ async function downloadImage(url, filename) {
 export default function Results() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -62,6 +62,15 @@ export default function Results() {
   const titles = record.title_suggestions || [];
   const improvements = record.improvements || [];
 
+  // What the score means, so the number never stands alone.
+  const score = record.score || 0;
+  const meaning = score >= 80 ? t('results.score.strong') : score >= 60 ? t('results.score.good') : t('results.score.needs');
+  const meaningCls =
+    score >= 80 ? 'bg-emerald-500/15 text-emerald-500'
+    : score >= 60 ? 'bg-amber-500/15 text-amber-500'
+    : 'bg-red-500/15 text-red-500';
+  const locale = lang === 'ar' ? 'ar' : 'en-US';
+
   return (
     <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:py-14">
       <button
@@ -75,6 +84,18 @@ export default function Results() {
       <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }}>
         <h1 className="font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{t('results.title')}</h1>
         <p className="mt-2 text-muted-foreground">{t('results.subtitle')}</p>
+        {/* What was analyzed */}
+        <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+          <span className="max-w-full truncate font-semibold">{record.source_label || '—'}</span>
+          <span className="inline-flex items-center rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {record.source_type === 'youtube' ? t('recent.type.youtube') : t('recent.type.upload')}
+          </span>
+          {record.created_date && (
+            <span className="text-xs text-muted-foreground">
+              {t('results.dateLabel')}: {new Date(record.created_date).toLocaleDateString(locale, { year: 'numeric', month: 'long', day: 'numeric' })}
+            </span>
+          )}
+        </div>
       </motion.div>
 
       <div className="mt-8 grid gap-5 lg:grid-cols-3">
@@ -88,7 +109,10 @@ export default function Results() {
           <div className="rounded-3xl border border-border bg-card p-6 shadow-soft">
             <div className="flex flex-col items-center text-center">
               <ScoreRing score={record.score || 0} size={140} stroke={12} label={t('results.scoreLabel')} />
-              <h2 className="mt-4 font-display text-lg font-bold">{t('results.scoreTitle')}</h2>
+              <span className={`mt-3 inline-flex items-center rounded-full px-3 py-1 text-xs font-bold ${meaningCls}`}>
+                {meaning}
+              </span>
+              <h2 className="mt-2 font-display text-lg font-bold">{t('results.scoreTitle')}</h2>
             </div>
             <div className="mt-4 flex gap-2.5 rounded-2xl bg-secondary/50 p-3.5">
               <Info className="h-5 w-5 shrink-0 text-primary" />
@@ -129,12 +153,6 @@ export default function Results() {
                 >
                   <Download className="h-4 w-4" />
                   {t('results.downloadThumb')}
-                </button>
-                <button
-                  className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 text-sm font-semibold transition-all hover:bg-secondary active:scale-95"
-                >
-                  <Pencil className="h-4 w-4" />
-                  {t('results.editThumb')}
                 </button>
               </div>
             </div>
