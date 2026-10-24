@@ -10,6 +10,22 @@ import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { useCredits } from '@/lib/CreditContext';
 import { deleteAnalysisFrames, saveAnalysisFrames } from '@/lib/videoFrames';
 
+function getYouTubeVideoId(value) {
+  if (typeof value !== 'string') return '';
+  try {
+    const url = new URL(/^https?:\/\//i.test(value) ? value : `https://${value}`);
+    if (!['youtube.com', 'www.youtube.com', 'm.youtube.com', 'youtu.be'].includes(url.hostname)) return '';
+    const id = url.hostname === 'youtu.be'
+      ? url.pathname.slice(1)
+      : url.pathname === '/watch'
+        ? url.searchParams.get('v') || ''
+        : url.pathname.match(/^\/(?:shorts|embed|live)\/([\w-]{11})/)?.[1] || '';
+    return /^[\w-]{11}$/.test(id) ? id : '';
+  } catch {
+    return '';
+  }
+}
+
 export default function Analyze() {
   const { t } = useI18n();
   const { settings } = useSiteSettings();
@@ -60,51 +76,49 @@ export default function Analyze() {
           },
         };
       }
-      // For YouTube links: fetch the video's public stats, then layer the
-      // creator's YouTube Studio numbers (CTR, impressions…) on top.
+      // Retrieve public YouTube metadata and combine it with creator-entered
+      // Studio numbers. Manus still receives the URL for the actual analysis.
       if (sourceType === 'youtube' && sourceUrl) {
-        let s = null;
+        let publicVideo = null;
         try {
-          const res = await invokeFunction('fetchYouTubeStats', { url: sourceUrl });
-          const d = res?.data;
-          if (d && !d.error) s = d;
-        } catch {
-          // couldn't fetch stats — continue with the raw link
+          const response = await invokeFunction('fetchYouTubeStats', { url: sourceUrl });
+          const data = response?.data;
+          if (data && !data.error) publicVideo = data;
+        } catch (metadataError) {
+          // Public metadata is helpful but must not block Manus from analyzing the URL.
+          console.warn('Could not fetch public YouTube metadata:', metadataError);
         }
         const st = studioStats || {};
-        const hasStudio = Object.values(st).some((value) => (
-          value != null && value !== '' && (!Array.isArray(value) || value.length > 0)
-        ));
-        if (s || hasStudio) {
-          if (s) label = `YouTube · ${s.title}`;
-          extra = {
-            thumbnail_url: (s && s.thumbnail_url) || '',
-            duration_seconds: typeof st.duration === 'number' ? st.duration : (s && s.duration_seconds) || null,
-            youtube_stats: {
-              video_duration: st.duration,
-              video_language: st.video_language,
-              video_context: typeof videoContext === 'string' ? videoContext.slice(0, 3000) : '',
-              spoken_content: typeof spokenContent === 'string' ? spokenContent.slice(0, 8000) : '',
-              views: st.views != null ? st.views : s ? s.views : null,
-              video_description: (s && s.description) || '',
-              likes: s ? s.likes : null,
-              comments: s ? s.comments : null,
-              channel: (s && s.channel) || '',
-              published_at: (s && s.published_at) || '',
-              impressions: st.impressions != null ? st.impressions : null,
-              ctr: st.ctr != null ? st.ctr : null,
-              avg_view_duration: st.avgView != null ? st.avgView : null,
-              traffic_sources: Array.isArray(st.traffic_sources) ? st.traffic_sources : (st.traffic_sources ? [st.traffic_sources] : []),
-              video_age_days: st.video_age_days,
-              video_title: (s && s.title) || '',
-              content_type: st.content_type || '',
-              target_audience: st.target_audience || '',
-              retention_percentage: st.retention_percentage,
-              previous_views: st.previous_views,
-              previous_ctr: st.previous_ctr,
-            },
-          };
-        }
+        if (publicVideo?.title) label = `YouTube · ${publicVideo.title}`;
+        const videoId = getYouTubeVideoId(sourceUrl);
+        extra = {
+          thumbnail_url: publicVideo?.thumbnail_url || (videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : ''),
+          duration_seconds: typeof st.duration === 'number' ? st.duration : publicVideo?.duration_seconds || null,
+          youtube_stats: {
+            video_duration: st.duration ?? null,
+            video_language: st.video_language || targetLanguage || 'en',
+            has_reference_images: Array.isArray(referenceFrames) && referenceFrames.length > 0,
+            video_context: typeof videoContext === 'string' ? videoContext.slice(0, 3000) : '',
+            spoken_content: typeof spokenContent === 'string' ? spokenContent.slice(0, 8000) : '',
+            views: st.views ?? publicVideo?.views ?? null,
+            likes: publicVideo?.likes ?? null,
+            comments: publicVideo?.comments ?? null,
+            channel: publicVideo?.channel || '',
+            published_at: publicVideo?.published_at || '',
+            video_title: publicVideo?.title || '',
+            video_description: publicVideo?.description || '',
+            impressions: st.impressions ?? null,
+            ctr: st.ctr ?? null,
+            avg_view_duration: st.avgView ?? null,
+            traffic_sources: Array.isArray(st.traffic_sources) ? st.traffic_sources : [],
+            video_age_days: st.video_age_days ?? null,
+            content_type: st.content_type || '',
+            target_audience: st.target_audience || '',
+            retention_percentage: st.retention_percentage ?? null,
+            previous_views: st.previous_views ?? null,
+            previous_ctr: st.previous_ctr ?? null,
+          },
+        };
       }
       const rec = await backend.data.Analysis.create({
         source_type: sourceType,

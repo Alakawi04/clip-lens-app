@@ -9,6 +9,7 @@ import { backend, invokeFunction } from '@/api/supabaseClient';
 import { useI18n } from '@/lib/i18n';
 import { useCredits } from '@/lib/CreditContext';
 import { copyAnalysisFrames, deleteAnalysisFrames, getAnalysisFrames, getInlineAnalysisFrames, getAnalysisReferenceImage } from '@/lib/videoFrames';
+import { waitForManusTask } from '@/lib/manusTasks';
 import PolicyLinks from '@/components/PolicyLinks';
 
 const STAGES = [
@@ -22,19 +23,28 @@ const STAGES = [
 
 async function getFunctionError(error) {
   const response = error?.context;
-  if (!(response instanceof Response)) return {};
-  try {
-    const payload = await response.clone().json();
-    return {
-      code: typeof payload?.error === 'string' ? payload.error : '',
-      videoTitle: typeof payload?.video_title === 'string' ? payload.video_title : '',
-      originalThumbnailUrl: typeof payload?.original_thumbnail_url === 'string'
-        ? payload.original_thumbnail_url
-        : '',
-    };
-  } catch {
-    return {};
+  if (response instanceof Response) {
+    try {
+      const payload = await response.clone().json();
+      return {
+        code: typeof payload?.error === 'string' ? payload.error : '',
+        videoTitle: typeof payload?.video_title === 'string' ? payload.video_title : '',
+        originalThumbnailUrl: typeof payload?.original_thumbnail_url === 'string'
+          ? payload.original_thumbnail_url
+          : '',
+      };
+    } catch {
+      // Fall through to a safe local error code when the function response is not JSON.
+    }
   }
+  const code = typeof error?.code === 'string' && /^[a-z][a-z0-9_]{1,79}$/i.test(error.code)
+    ? error.code
+    : typeof error?.message === 'string' && /^[a-z][a-z0-9_]{1,79}$/i.test(error.message)
+      ? error.message
+      : error?.name === 'FunctionsFetchError'
+        ? 'edge_function_unreachable'
+        : '';
+  return { code };
 }
 
 function analysisErrorMessage(error, details, translate) {
@@ -46,20 +56,21 @@ function analysisErrorMessage(error, details, translate) {
   if (details.code === 'insufficient_credits') return translate('analyze.credits.desc');
   if (details.code === 'analysis_already_used') return translate('progress.analysisAlreadyUsed');
   if (details.code === 'credit_service_unavailable') return translate('progress.aiError');
-  if (details.code === 'ai_not_configured') return translate('progress.aiError');
+  if (details.code === 'manus_api_not_configured') return translate('progress.manusNotConfigured');
+  if (details.code === 'manus_status_not_configured') return translate('progress.manusBackendNotConfigured');
+  if (details.code === 'manus_unauthorized' || details.code === 'manus_unauthenticated' || details.code === 'manus_invalid_api_key') {
+    return translate('progress.manusAuthFailed');
+  }
+  if (details.code?.startsWith('manus_rate_limited')) return translate('progress.manusRateLimited');
+  if (details.code?.startsWith('manus_')) return translate('progress.manusRequestFailed');
   if (details.code === 'invalid_video_language') return translate('progress.invalidVideoLanguage');
   if (details.code === 'video_frames_missing') return translate('progress.videoFramesMissing');
-  if (details.code === 'invalid_ai_response' || details.code === 'empty_ai_response') {
-    return translate('progress.invalidAiResponse');
-  }
-  if (details.code === 'ai_request_failed') {
-    return translate('progress.aiRequestFailed');
-  }
+  if (details.code === 'edge_function_unreachable') return translate('progress.edgeFunctionUnreachable');
   return translate('progress.aiError');
 }
 
 function safeSavedError(message, translate) {
-  if (typeof message !== 'string' || /gemini|google\s*ai|generativelanguage|api[\s_-]*key|model access|quota/i.test(message)) {
+  if (typeof message !== 'string' || /^[a-z][a-z0-9_]{1,79}$/i.test(message) || /(?:sk-[a-z0-9_-]{12,}|api[\s_-]*key\s*[:=])/i.test(message)) {
     return translate('progress.failedDesc');
   }
   return message;
@@ -136,9 +147,7 @@ export default function Progress() {
           analysisId: id,
           sourceType: record.source_type,
           url: record.source_url,
-          // Let the Edge Function resolve YouTube's public title from its ID
-          // when metadata lookup was unavailable. A URL is not a video title.
-          videoTitle: record.youtube_stats?.video_title || (record.source_type === 'youtube' ? record.source_label : ''),
+          videoTitle: record.youtube_stats?.video_title || '',
           videoContext: record.youtube_stats?.video_context || '',
           spokenContent: record.youtube_stats?.spoken_content || '',
           thumbnailUrl: record.thumbnail_url,
@@ -155,18 +164,29 @@ export default function Progress() {
           if (!input.frames?.length) {
             throw Object.assign(new Error('Video sample frames are no longer available.'), { code: 'video_frames_missing' });
           }
-        } else if (record.source_type === 'youtube') {
+        } else if (record.source_type === 'youtube' && record.youtube_stats?.has_reference_images === true) {
           // Creator-provided reference images are optional and provide visual
           // direction only; they are not assumed to be frames from the linked video.
-          const referenceFrames = await getInlineAnalysisFrames(id);
-          if (referenceFrames?.length) input.referenceFrames = referenceFrames;
+          try {
+            const referenceFrames = await getInlineAnalysisFrames(id);
+            if (referenceFrames?.length) input.referenceFrames = referenceFrames;
+          } catch (referenceError) {
+            // Optional local images must never stop a YouTube URL analysis.
+            console.warn('Could not read optional YouTube reference images:', referenceError);
+          }
         }
         if (wasCancelled()) return;
         changePhase('analyzing');
         const response = await invokeFunction('analyzeYouTubeVideo', input, { signal: controller.signal });
         if (wasCancelled()) return;
-        const result = response?.data && typeof response.data === 'object' ? response.data : {};
+        const taskId = response?.data?.taskId;
+        if (typeof taskId !== 'string' || !taskId) throw new Error('manus_task_create_failed');
+        const completedTask = await waitForManusTask(id, 'analysis', { signal: controller.signal });
+        if (wasCancelled()) return;
+        const result = completedTask?.result && typeof completedTask.result === 'object' ? completedTask.result : {};
         const summary = typeof result.summary === 'string' ? result.summary.trim() : '';
+        const videoTitle = typeof result.video_title === 'string' ? result.video_title.trim().slice(0, 500) : '';
+        const videoDescription = typeof result.video_description === 'string' ? result.video_description.trim().slice(0, 4000) : '';
         const score = typeof result.score === 'number' && Number.isFinite(result.score)
           ? Math.max(0, Math.min(100, Math.round(result.score)))
           : null;
@@ -202,6 +222,10 @@ export default function Progress() {
         const updatedStats = {
           ...record.youtube_stats,
           video_language: input.targetLanguage,
+          ...(videoTitle ? { video_title: videoTitle } : {}),
+          ...(videoDescription ? { video_description: videoDescription } : {}),
+          ...(taskId ? { manus_analysis_task_id: taskId } : {}),
+          ...(typeof response.data.taskSignature === 'string' ? { manus_analysis_task_signature: response.data.taskSignature } : {}),
           ...(thumbnailConcept ? { thumbnail_concept: thumbnailConcept } : {}),
           ...(thumbnailText ? { thumbnail_text: thumbnailText } : {}),
           ...(thumbnailImagePrompt ? { thumbnail_image_prompt: thumbnailImagePrompt } : {}),
@@ -214,8 +238,8 @@ export default function Progress() {
           progress: hasUsableResult ? 100 : 0,
           score,
           summary,
-          source_label: record.source_type === 'youtube' ? result.video_title || record.source_label : record.source_label,
-          thumbnail_url: result.original_thumbnail_url || record.thumbnail_url || generatedThumbnailUrl || null,
+          source_label: record.source_type === 'youtube' ? videoTitle || record.source_label : record.source_label,
+          thumbnail_url: response.data.originalThumbnailUrl || record.thumbnail_url || generatedThumbnailUrl || null,
           title_suggestions: titles,
           improvements,
           youtube_stats: updatedStats,
@@ -255,7 +279,7 @@ export default function Progress() {
         if (wasCancelled()) return;
 
         // Build the actual thumbnail as part of Analyze. Text results are already
-        // saved, so an image-provider failure cannot discard the analysis.
+        // saved, so a Manus image-generation failure cannot discard the analysis.
         if (terminalStatus === 'completed' && !generatedThumbnailUrl) {
           changePhase('thumbnail');
           try {
@@ -269,13 +293,16 @@ export default function Progress() {
               prompt: '',
               ...(referenceImage ? { referenceImage } : {}),
             }, { signal: controller.signal });
-            const generatedUrl = typeof thumbnailResponse?.data?.url === 'string'
-              ? thumbnailResponse.data.url.trim()
-              : '';
-            if (!generatedUrl) throw new Error('image_provider_invalid_response');
+            if (typeof thumbnailResponse?.data?.taskId !== 'string') throw new Error('manus_thumbnail_task_create_failed');
+            const thumbnailResult = await waitForManusTask(id, 'thumbnail', { signal: controller.signal });
+            const generatedUrl = typeof thumbnailResult?.url === 'string' ? thumbnailResult.url.trim() : '';
+            if (!generatedUrl) throw new Error('manus_thumbnail_image_missing');
             const nextStats = {
               ...(finalRecord.youtube_stats || {}),
               generated_thumbnail_url: generatedUrl,
+              manus_thumbnail_task_id: thumbnailResponse.data.taskId,
+              manus_thumbnail_task_signature: thumbnailResponse.data.taskSignature,
+              manus_thumbnail_result_task_id: thumbnailResponse.data.taskId,
               thumbnail_generation_error: null,
               analysis_sections: {
                 ...(finalRecord.youtube_stats?.analysis_sections || {}),
@@ -295,7 +322,7 @@ export default function Progress() {
             const details = await getFunctionError(thumbnailError);
             const reason = details.code || (typeof thumbnailError?.message === 'string'
               ? thumbnailError.message
-              : 'image_generation_failed');
+              : 'manus_thumbnail_generation_failed');
             const nextStats = {
               ...(finalRecord.youtube_stats || {}),
               thumbnail_generation_error: reason,
@@ -334,9 +361,12 @@ export default function Progress() {
         setPhase('failed');
         const errorDetails = await getFunctionError(error);
         const message = analysisErrorMessage(error, errorDetails, t);
+        const failureCode = /^[a-z][a-z0-9_]{1,79}$/i.test(errorDetails.code || '')
+          ? errorDetails.code
+          : 'analysis_request_failed';
         const failedSections = Object.fromEntries(
           ['summary', 'score', 'thumbnailConcept', 'thumbnailText', 'thumbnailImage', 'titles', 'improvements']
-            .map((key) => [key, { status: 'failed', reason: key === 'thumbnailImage' && errorDetails.code?.startsWith('thumbnail_') ? errorDetails.code : 'analysis_request_failed' }])
+            .map((key) => [key, { status: 'failed', reason: failureCode }])
         );
         const failedStats = { ...(record.youtube_stats || {}), analysis_sections: failedSections };
         const failedRecord = {

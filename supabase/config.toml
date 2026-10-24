@@ -7,6 +7,9 @@ verify_jwt = true
 [functions.generate-thumbnail]
 verify_jwt = true
 
+[functions.manus-task-status]
+verify_jwt = true
+
 [functions.create-credit-checkout]
 verify_jwt = true
 

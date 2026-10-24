@@ -235,6 +235,7 @@ export async function invokeFunction(name, body, options: { signal?: AbortSignal
     fetchYouTubeStats: 'fetch-youtube-stats',
     analyzeYouTubeVideo: 'analyze-youtube-video',
     generateThumbnail: 'generate-thumbnail',
+    manusTaskStatus: 'manus-task-status',
     createCreditCheckout: 'create-credit-checkout',
   };
   const functionName = functionNames[name] || name;

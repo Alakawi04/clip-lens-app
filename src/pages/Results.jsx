@@ -9,6 +9,7 @@ import Improvements from '@/components/results/Improvements';
 import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useI18n } from '@/lib/i18n';
 import { getAnalysisReferenceImage } from '@/lib/videoFrames';
+import { waitForManusTask } from '@/lib/manusTasks';
 import PolicyLinks from '@/components/PolicyLinks';
 
 async function downloadImage(url, filename) {
@@ -28,10 +29,12 @@ async function downloadImage(url, filename) {
 }
 
 function sectionFailureText(reason, t, fallbackKey) {
-  if (reason === 'image_provider_not_configured') return t('results.thumbnailProviderMissing');
-  if (reason === 'image_provider_balance_required') return t('results.thumbnailBalanceRequired');
-  if (reason === 'image_provider_rate_limited') return t('results.thumbnailRateLimited');
-  if (typeof reason === 'string' && reason.startsWith('image_')) return t('results.thumbnailGenerationError');
+  if (reason === 'manus_api_not_configured') return t('results.manusNotConfigured');
+  if (reason === 'manus_status_not_configured') return t('results.manusBackendNotConfigured');
+  if (reason === 'manus_unauthorized' || reason === 'manus_unauthenticated' || reason === 'manus_invalid_api_key') return t('results.manusAuthFailed');
+  if (typeof reason === 'string' && reason.startsWith('manus_rate_limited')) return t('results.manusRateLimited');
+  if (typeof reason === 'string' && reason.startsWith('manus_')) return t('results.manusRequestFailed');
+  if (reason === 'edge_function_unreachable') return t('results.edgeFunctionUnreachable');
   if (reason === 'analysis_request_failed') return t('results.failure.analysis');
   if (reason === 'analysis_result_incomplete' || reason === 'invalid_ai_response' || reason === 'empty_ai_response') {
     return t('results.failure.incomplete');
@@ -112,11 +115,16 @@ export default function Results() {
         prompt: thumbnailPrompt.trim().slice(0, 2400),
         ...(referenceImage ? { referenceImage } : {}),
       });
-      const generatedUrl = typeof response?.data?.url === 'string' ? response.data.url : '';
-      if (!generatedUrl) throw new Error('image_provider_invalid_response');
+      if (typeof response?.data?.taskId !== 'string') throw new Error('manus_thumbnail_task_create_failed');
+      const completion = await waitForManusTask(id, 'thumbnail');
+      const generatedUrl = typeof completion?.url === 'string' ? completion.url : '';
+      if (!generatedUrl) throw new Error('manus_thumbnail_image_missing');
       const nextStats = {
         ...(record.youtube_stats || {}),
         generated_thumbnail_url: generatedUrl,
+        manus_thumbnail_task_id: response.data.taskId,
+        manus_thumbnail_task_signature: response.data.taskSignature,
+        manus_thumbnail_result_task_id: response.data.taskId,
         thumbnail_generation_error: null,
         analysis_sections: {
           ...sections,
@@ -138,10 +146,10 @@ export default function Results() {
       setThumbnailError(code);
       const nextStats = {
         ...(record.youtube_stats || {}),
-        thumbnail_generation_error: code || 'image_generation_failed',
+        thumbnail_generation_error: code || 'manus_thumbnail_generation_failed',
         analysis_sections: {
           ...sections,
-          thumbnailImage: { status: 'failed', reason: code || 'image_generation_failed' },
+          thumbnailImage: { status: 'failed', reason: code || 'manus_thumbnail_generation_failed' },
         },
       };
       try {

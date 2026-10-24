@@ -14,53 +14,33 @@ The public image bucket is provisioned by the migration. Promote the first admin
 update public.profiles set role = 'admin' where email = 'YOUR_ADMIN_EMAIL';
 ```
 
-Deploy YouTube metadata retrieval as a Supabase Edge Function:
+YouTube Data API v3 retrieves the public title, description, thumbnail, view/like/comment counts, duration, and publish date for a YouTube URL. This metadata lookup is separate from AI analysis: Manus remains the only AI provider and receives the video URL to analyze. Creator-only YouTube Studio metrics are entered manually. Set a restricted YouTube Data API v3 key as a Supabase Edge Function secret and deploy the metadata function:
 
 ```sh
-npx supabase login
-npx supabase link --project-ref YOUR_PROJECT_ID
 npx supabase secrets set YOUTUBE_DATA_API_KEY=YOUR_GOOGLE_API_KEY
 npx supabase functions deploy fetch-youtube-stats
 ```
 
-The function runs on Supabase Edge and has its Supabase environment provided by the platform; this Vite project does not need `@supabase/server`. JWT verification is enabled for the function in `supabase/config.toml`. Keep all API and Supabase secret keys in server-side secrets only: never put them in a `VITE_*` variable or browser code.
+Manus handles all ClipLens AI work: video analysis, title suggestions, thumbnail concepts, and thumbnail image generation. For a YouTube review, the canonical video URL is sent in the Manus task prompt. Manus is asked to inspect the public video and transcript with its built-in YouTube/video research capabilities, then return a score, verdict, five title ideas, five prioritized improvements, and an image-generation prompt. Video access varies; when Manus cannot inspect the full video, it must state that limit and base the report only on evidence it can access.
 
-Gemini handles video analysis and title suggestions only. Save its key as a Supabase Edge Function secret, then deploy the analysis function:
+Manus runs each request as a private background task; ClipLens polls the task and saves its structured report or generated image when ready. Set its key as a Supabase Edge Function secret and deploy the three Manus functions:
 
 ```sh
-npx supabase secrets set GEMINI_API_KEY=YOUR_GEMINI_API_KEY
+npx supabase secrets set MANUS_API_KEY=YOUR_MANUS_API_KEY
 npx supabase functions deploy analyze-youtube-video
-```
-
-YouTube reviews use the public thumbnail/title and public details from YouTube Data API, plus the Studio metrics the user enters manually. YouTube Studio’s private impressions and CTR are not fetched automatically. Gemini returns the analysis, up to five alternative titles with reasons, and a thumbnail concept in the selected video language; the summary follows the interface language. It uses `gemini-3.5-flash-lite` through Google’s `generateContent` API. MP4 analysis sends six sampled still frames and the supplied context; it does not inspect audio or claim to watch every frame.
-
-After a successful text analysis, ClipLens automatically creates one thumbnail image and saves it to the existing public `public-assets` bucket and the user’s analysis record. The results page also lets users generate another version. It calls the FLUX Kontext Pro API through FluxAPI.ai from the `generate-thumbnail` Edge Function, polls the returned task ID, then downloads and saves the completed image. The requested image ratio is 16:9. For uploaded MP4s, four sampled video frames are composed into a temporary reference image and passed to FLUX to preserve visible people and objects; YouTube-link analyses can use up to four screenshots the user selects. This reference is stored in a private temporary bucket, passed using a time-limited signed URL, then deleted after the image task finishes. Local frame samples remain on the device for up to 24 hours for thumbnail regeneration. The public YouTube thumbnail is not sent to the image service. Each generated image may consume FluxAPI account credits; usage is not unlimited. The app never sends the API key to the browser.
-
-Create an API key in the [FluxAPI.ai dashboard](https://fluxapi.ai/). This project uses the Flux Kontext Pro endpoint, not the Black Forest Labs direct API. FluxAPI.ai uses account credits and may offer trial credits; usage is not unlimited. Check your current credits and model pricing in its dashboard before generating images. Add the key as a server-side Supabase secret:
-
-```sh
-npx supabase secrets set IMAGE_API_KEY=YOUR_FLUXAPI_AI_API_KEY
 npx supabase functions deploy generate-thumbnail
+npx supabase functions deploy manus-task-status
 ```
 
-YouTube metadata lookup uses `YOUTUBE_DATA_API_KEY` and is deployed separately as described above. It reads public video details only. Set all three provider keys in **Supabase Dashboard → Edge Functions → Secrets**, or with the CLI commands above. For local Edge Function development, use a local Supabase env file that is excluded from Git. Never put these values in `.env.local`, `VITE_*`, browser code, or a committed file.
+YouTube Studio’s private impressions and CTR are not fetched automatically; the user can enter them manually. Manus returns a structured analysis with title suggestions and a thumbnail concept in the selected video language; the summary follows the interface language. MP4 analysis sends six sampled still frames and the supplied context; it does not inspect audio or claim to watch every frame. The Manus key stays on Supabase and is never sent to the browser.
 
-The existing analysis RLS policy is checked before image generation and when saving results. Generated images are stored in the existing public image bucket under a path scoped to the authenticated user and analysis. A private `thumbnail-reference-temp` Storage bucket is provisioned by the new migration for temporary reference images; only the Edge Function service role can access it.
+After a successful analysis, ClipLens creates a separate Manus task to generate a 16:9 image and stores it in the existing public `public-assets` bucket. The results page can also request another image. For uploaded MP4s, sampled frames are sent as a private Manus attachment; for YouTube links, Manus receives the exact URL and may also use the supplied thumbnail and reference images. Manus tasks are private by default and start without user-connected account connectors. Review Manus account usage and data terms before sharing real customer videos. Do not put the Manus key in `.env.local`, a `VITE_*` variable, browser code, or a committed file.
 
-Apply pending migrations and deploy the updated image function:
-
-```sh
-npx supabase db push
-npx supabase functions deploy generate-thumbnail
-```
-
-Gemini’s free tier has usage limits, and Google states that free-tier inputs may be used to improve its products. If that is not suitable for submitted video frames or Studio data, use a paid Gemini tier with its separate pricing and data terms. Keep provider secrets out of all `VITE_*` variables.
-
-Create the YouTube key in [Google Cloud Console](https://console.cloud.google.com/), enable YouTube Data API v3, and restrict the key to that API. YouTube API usage has a quota; check the project quota before increasing traffic. The function retrieves public video metadata only; private YouTube Studio metrics such as impressions and CTR must be provided by the user. Create the Gemini key in [Google AI Studio](https://aistudio.google.com/apikey); it is used by the Edge Function for analysis only.
+Keep all API and Supabase secret keys in server-side secrets only: never put them in a `VITE_*` variable or browser code. For local Edge Function development, use a local Supabase env file that is excluded from Git.
 
 ## Credits and Pro billing
 
-The billing migration enables credits by default: new accounts receive 3 credits, a YouTube link analysis costs 1 credit, and an uploaded-video analysis costs 2. Pro is a $20 monthly subscription that grants 200 credits per paid billing period. Credit reservations are enforced by Supabase before a YouTube model request; Stripe webhook events are signature-verified and idempotent.
+The billing migration enables credits by default: new accounts receive 3 credits, a YouTube link analysis costs 1 credit, and an uploaded-video analysis costs 2. Pro is a $20 monthly subscription that grants 200 credits per paid billing period. Credit reservations are enforced by Supabase before a Manus task starts; Stripe webhook events are signature-verified and idempotent.
 
 Apply the migration and deploy the billing functions:
 
