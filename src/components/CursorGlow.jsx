@@ -22,6 +22,23 @@ export default function CursorGlow() {
     };
     let raf = 0;
 
+    const tick = () => {
+      const dx = pos.tx - pos.x;
+      const dy = pos.ty - pos.y;
+      if (!pos.active || (Math.abs(dx) < 0.2 && Math.abs(dy) < 0.2)) {
+        pos.x = pos.tx;
+        pos.y = pos.ty;
+        node.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%, -50%)`;
+        raf = 0;
+        return;
+      }
+
+      pos.x += dx * 0.16;
+      pos.y += dy * 0.16;
+      node.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0) translate(-50%, -50%)`;
+      raf = requestAnimationFrame(tick);
+    };
+
     const onMove = (e) => {
       if (!pos.active) {
         pos.active = true;
@@ -31,24 +48,18 @@ export default function CursorGlow() {
       pos.tx = e.clientX;
       pos.ty = e.clientY;
       node.style.opacity = '1';
+      if (!raf) raf = requestAnimationFrame(tick);
     };
+
     const onLeave = () => {
       pos.active = false;
       node.style.opacity = '0';
+      if (raf) cancelAnimationFrame(raf);
+      raf = 0;
     };
 
-    const tick = () => {
-      if (pos.active) {
-        pos.x += (pos.tx - pos.x) * 0.09;
-        pos.y += (pos.ty - pos.y) * 0.09;
-        node.style.transform = `translate3d(${pos.x.toFixed(1)}px, ${pos.y.toFixed(1)}px, 0) translate(-50%, -50%)`;
-      }
-      raf = requestAnimationFrame(tick);
-    };
-
-    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mousemove', onMove, { passive: true });
     document.addEventListener('mouseleave', onLeave);
-    raf = requestAnimationFrame(tick);
 
     return () => {
       cancelAnimationFrame(raf);
@@ -64,7 +75,7 @@ export default function CursorGlow() {
       ref={ref}
       className="absolute left-0 top-0 h-[38rem] w-[38rem] rounded-full opacity-0 transition-opacity duration-700"
       style={{
-        background: 'radial-gradient(circle, hsl(var(--primary) / 0.07), transparent 65%)',
+        background: 'radial-gradient(circle, hsl(var(--primary) / 0.025), transparent 65%)',
         willChange: 'transform',
       }}
     />

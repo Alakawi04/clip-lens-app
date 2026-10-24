@@ -1,12 +1,11 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { backend, invokeFunction } from '@/api/supabaseClient';
 import { useAuth } from '@/lib/AuthContext';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 
 const CreditContext = createContext(null);
 
-// Per-user credit balance. The whole system is inert while the admin has the
-// credit toggle off — the site behaves exactly like a free, open product.
+// Per-user credit balance and analysis charging.
 export function CreditProvider({ children }) {
   const { settings } = useSiteSettings();
   const { user, isAuthenticated } = useAuth();
@@ -19,9 +18,10 @@ export function CreditProvider({ children }) {
       return;
     }
     try {
-      const page = await base44.entities.CreditAccount.filter({ user_id: user.id }, { limit: 1 });
+      const page = await backend.data.CreditAccount.filter({ user_id: user.id }, { limit: 1 });
       setAccount(page.items?.[0] || null);
-    } catch {
+    } catch (error) {
+      console.error('Failed to load credit balance:', error);
       setAccount(null);
     }
   }, [enabled, isAuthenticated, user?.id]);
@@ -31,14 +31,14 @@ export function CreditProvider({ children }) {
   // Keep the balance fresh when it changes server-side (spend / admin grant).
   useEffect(() => {
     if (!enabled || !isAuthenticated) return undefined;
-    const unsubscribe = base44.entities.CreditAccount.subscribe(() => { load(); });
+    const unsubscribe = backend.data.CreditAccount.subscribe(() => { load(); });
     return unsubscribe;
   }, [enabled, isAuthenticated, load]);
 
   // Spends one analysis' worth of credits (backend function, service role).
   // Returns { ok, balance } or { ok: false, reason: 'insufficient', balance }.
-  const spend = useCallback(async () => {
-    const res = await base44.functions.invoke('consumeCredit', {});
+  const spend = useCallback(async (analysisId, claimApi = false) => {
+    const res = await invokeFunction('consumeCredit', { analysisId, claimApi });
     await load();
     return res?.data;
   }, [load]);

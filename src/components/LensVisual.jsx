@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { motion, AnimatePresence, useReducedMotion, useMotionValue, useSpring } from 'framer-motion';
+import { motion, AnimatePresence, useInView, useReducedMotion, useMotionValue, useSpring } from 'framer-motion';
 import { Sparkles, BarChart3, X } from 'lucide-react';
 import { Image } from '@/components/ui/image';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
@@ -15,69 +15,86 @@ const FALLBACKS = [
   'https://images.unsplash.com/photo-1522199755835-a69bdb78cb1e?auto=format&fit=crop&w=900&q=80',
 ];
 
-// Stack slots (pos 0 = front). x/y in % of card size, z in px depth.
-// The queue cascades downward: when the deck cycles, the front card drops
-// straight down behind the brand mark to the bottom slot, and every other
-// card rises one slot up — the new front card climbing over the brand mark.
+// Original layered stack: the featured card stays forward while its companions recede.
 const SLOTS = [
-  { x: 0, y: 0, z: 130, r: 0, s: 1, o: 1 },
-  { x: -16, y: 13, z: -50, r: -9, s: 0.95, o: 0.96 },
-  { x: 15, y: 27, z: -210, r: 11, s: 0.9, o: 0.92 },
-  { x: -7, y: 42, z: -370, r: -8, s: 0.86, o: 0.88 },
+  { x: 0, y: 0, z: 130, r: 0, rx: 0, ry: 0, s: 1, o: 1 },
+  { x: -16, y: 13, z: -50, r: -9, rx: 0, ry: 0, s: 0.95, o: 0.96 },
+  { x: 15, y: 27, z: -210, r: 11, rx: 0, ry: 0, s: 0.9, o: 0.92 },
+  { x: -7, y: 42, z: -370, r: -8, rx: 0, ry: 0, s: 0.86, o: 0.88 },
 ];
-// Where each back card flies on hover — one distinct spot each, fanned
-// around the front card instead of piling onto the same place.
+// Original hover fan spreads only the supporting cards around the featured one.
 const HOVER_SLOTS = [
-  { x: 0, y: 0, z: 130, r: 0 },
-  { x: -46, y: -64, z: 35, r: -16 },
-  { x: 52, y: 18, z: -40, r: 15 },
-  { x: -6, y: 78, z: -105, r: 8 },
+  { x: 0, y: 0, z: 130, r: 0, rx: 0, ry: 0 },
+  { x: -46, y: -64, z: 22, r: -16, rx: 0, ry: 0 },
+  { x: 52, y: 18, z: -55, r: 15, rx: 0, ry: 0 },
+  { x: -6, y: 78, z: -125, r: 8, rx: 0, ry: 0 },
 ];
-// Snappier while the pointer is over the deck, slow and dreamy as it settles back.
 const SPRING = { type: 'spring', stiffness: 170, damping: 20, opacity: { duration: 0.35 } };
-const SPRING_RETURN = { type: 'spring', stiffness: 13, damping: 21, mass: 1.4, opacity: { duration: 1.4 } };
+const SPREAD_SPRING = { type: 'spring', stiffness: 210, damping: 28, mass: 0.8, overshootClamping: true, opacity: { duration: 0.25 } };
+const POINTER_SPRING = { stiffness: 265, damping: 22, mass: 0.72 };
+const CYCLE_TRANSITION = { type: 'tween', duration: 1.15, ease: [0.22, 1, 0.36, 1] };
 
-// A lens-inspired card deck: cards cycle automatically (the front card slides
-// out and tucks behind the deck) and spread apart on hover. Pointer tilt is
-// slow and limited; respects prefers-reduced-motion.
+// A lens-inspired card deck changes its featured image every four seconds.
+// Cycling pauses during interaction, zoom, offscreen use, and reduced motion.
 export default function LensVisual({ className = '', size = 360 }) {
   const ref = useRef(null);
   const reduce = useReducedMotion();
+  const isInView = useInView(ref, { amount: 0.2 });
   const { settings } = useSiteSettings();
   const { t } = useI18n();
   const [hovered, setHovered] = useState(false);
-  const [order, setOrder] = useState([0, 1, 2, 3]);
+  const [hoveredCard, setHoveredCard] = useState(null);
   const [zoomed, setZoomed] = useState(null);
+  const [order, setOrder] = useState([0, 1, 2, 3]);
+  const [cycleMotion, setCycleMotion] = useState({ id: 0, byImage: {} });
+  const orderRef = useRef([0, 1, 2, 3]);
 
   // Tilt runs through soft springs so it eases out slowly when the pointer leaves.
   const tiltX = useMotionValue(0);
   const tiltY = useMotionValue(0);
-  const rx = useSpring(tiltX, { stiffness: 130, damping: 16 });
-  const ry = useSpring(tiltY, { stiffness: 130, damping: 16 });
+  const rx = useSpring(tiltX, POINTER_SPRING);
+  const ry = useSpring(tiltY, POINTER_SPRING);
 
   const images = useMemo(() => {
-    const raw = [settings.hero_image_url, ...(settings.gallery_images || [])].filter(Boolean);
+    const raw = settings.hero_images?.length
+      ? settings.hero_images.filter(Boolean)
+      : [settings.hero_image_url, ...(settings.gallery_images || [])].filter(Boolean);
     const uniq = [...new Set(raw)];
     for (const fallback of FALLBACKS) {
       if (uniq.length >= 4) break;
       if (!uniq.includes(fallback)) uniq.push(fallback);
     }
     return uniq.slice(0, 4);
-  }, [settings.hero_image_url, settings.gallery_images]);
+  }, [settings.hero_images, settings.hero_image_url, settings.gallery_images]);
 
-  // Keep the deck in sync with the available images.
   useEffect(() => {
-    setOrder(images.map((_, i) => i));
+    const nextOrder = images.map((_, i) => i);
+    orderRef.current = nextOrder;
+    setOrder(nextOrder);
   }, [images]);
 
-  // Auto-cycle: the front card slides out to the back of the deck. Paused on hover.
   useEffect(() => {
-    if (reduce || hovered || zoomed !== null || order.length < 2) return undefined;
-    const id = setInterval(() => {
-      setOrder((prev) => [...prev.slice(1), prev[0]]);
-    }, 4600);
-    return () => clearInterval(id);
-  }, [reduce, hovered, zoomed, order.length]);
+    if (reduce || !isInView || hovered || zoomed !== null || images.length < 2) return undefined;
+
+    const id = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      const current = orderRef.current;
+      const next = [...current.slice(1), current[0]];
+      const byImage = Object.fromEntries(next.map((imgIndex, nextPosition) => {
+        const previousPosition = current.indexOf(imgIndex);
+        const dx = SLOTS[nextPosition].x - SLOTS[previousPosition].x;
+        const dy = (SLOTS[nextPosition].y - SLOTS[previousPosition].y) * (9 / 16);
+        const angle = Math.atan2(dy, dx) * (180 / Math.PI) - SLOTS[nextPosition].r;
+        const strength = Math.min(1, Math.hypot(dx, dy) / 90);
+        return [imgIndex, { x: Math.sign(dx), y: Math.sign(dy), angle, strength }];
+      }));
+      orderRef.current = next;
+      setCycleMotion((motion) => ({ id: motion.id + 1, byImage }));
+      setOrder(next);
+    }, 4000);
+
+    return () => window.clearInterval(id);
+  }, [images.length, hovered, isInView, reduce, zoomed]);
 
   const onMove = (e) => {
     if (reduce) return;
@@ -87,7 +104,17 @@ export default function LensVisual({ className = '', size = 360 }) {
     const px = (e.clientX - r.left) / r.width - 0.5;
     const py = (e.clientY - r.top) / r.height - 0.5;
     tiltX.set(py * -34);
-    tiltY.set(px * 46);
+    tiltY.set(px * 44);
+    el.style.setProperty('--lens-light-x', `${(px + 0.5) * 100}%`);
+    el.style.setProperty('--lens-light-y', `${(py + 0.5) * 100}%`);
+  };
+
+  const setCardLight = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.min(100, Math.max(0, ((e.clientX - rect.left) / rect.width) * 100));
+    const y = Math.min(100, Math.max(0, ((e.clientY - rect.top) / rect.height) * 100));
+    e.currentTarget.style.setProperty('--lens-light-x', `${x}%`);
+    e.currentTarget.style.setProperty('--lens-light-y', `${y}%`);
   };
 
   const targetFor = (pos) => {
@@ -98,7 +125,9 @@ export default function LensVisual({ className = '', size = 360 }) {
       y: `${-50 + (h ? h.y : p.y)}%`,
       z: h ? h.z : p.z,
       rotate: h ? h.r : p.r,
-      scale: p.s,
+      rotateX: h ? h.rx : p.rx,
+      rotateY: h ? h.ry : p.ry,
+      scale: h?.s ?? p.s,
       opacity: p.o,
     };
   };
@@ -111,122 +140,167 @@ export default function LensVisual({ className = '', size = 360 }) {
       onMouseLeave={() => {
         tiltX.set(0);
         tiltY.set(0);
+        ref.current?.style.setProperty('--lens-light-x', '50%');
+        ref.current?.style.setProperty('--lens-light-y', '28%');
+        setHoveredCard(null);
         setHovered(false);
       }}
-      className={`perspective select-none aspect-square w-full ${className}`}
-      style={{ maxWidth: size, perspective: '950px' }}
+      className={`lens-visual perspective select-none aspect-square w-full ${className}`}
+      style={{ maxWidth: size, perspective: '1150px' }}
     >
       <motion.div className="preserve-3d h-full w-full" style={{ rotateX: rx, rotateY: ry }}>
         <motion.div
           className="preserve-3d relative h-full w-full"
-          animate={reduce ? {} : { y: [0, -14, 0] }}
+          animate={reduce || !isInView ? { y: 0 } : { y: [0, -14, 0] }}
           transition={{ duration: 7, repeat: Infinity, ease: 'easeInOut' }}
         >
           {/* Glow base */}
           <div className="absolute inset-0 -z-10 grid place-items-center">
-            <div className="h-3/4 w-3/4 rounded-full bg-primary/15 blur-3xl" />
-          </div>
-
-          {/* Ghost glow panels — blurred echoes of the card stack behind the deck */}
-          <div
-            className="absolute left-1/2 top-1/2 aspect-video w-[130%] rounded-[2.5rem] bg-primary/12 blur-3xl"
-            style={{ transform: 'translate(-50%, -50%) rotate(-12deg) translateZ(-150px)' }}
-          />
-          <div
-            className="absolute left-1/2 top-1/2 aspect-video w-[105%] rounded-[2.5rem] bg-primary/6 blur-2xl"
-            style={{ transform: 'translate(-50%, -50%) rotate(9deg) translateZ(-190px)' }}
-          />
-
-          {/* Ring backdrop — a thin circular line right behind the front card.
-              Back cards always settle behind it; only the front card floats above. */}
-          <div
-            className="absolute left-1/2 top-1/2 aspect-square w-[94%]"
-            style={{ transform: 'translate(-50%, -50%) translateZ(10px) rotate(-6deg)' }}
-          >
-            <motion.div
-              className="relative h-full w-full"
-              animate={reduce ? {} : { y: [0, -12, 0] }}
-              transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut' }}
-            >
-              <div className="absolute inset-0 rounded-full border-2 border-primary/25" />
-            </motion.div>
+            <div className="h-3/4 w-3/4 rounded-full bg-primary/[0.07] blur-3xl" />
           </div>
 
           {/* Card deck */}
           {order.map((imgIndex, pos) => {
             const isFront = pos === 0;
+            const hasOrbitLight = pos === 0;
+            const movement = cycleMotion.byImage[imgIndex];
             return (
               <motion.div
                 key={imgIndex}
                 onClick={() => setZoomed(imgIndex)}
-                className="preserve-3d absolute left-1/2 top-1/2 aspect-video w-[92%] cursor-pointer"
+                onMouseEnter={(e) => {
+                  setHoveredCard(imgIndex);
+                  setCardLight(e);
+                }}
+                onMouseMove={setCardLight}
+                onMouseLeave={() => setHoveredCard(null)}
+                className={`lens-card-shell preserve-3d absolute left-1/2 top-1/2 aspect-video w-[80%] cursor-pointer ${hoveredCard === imgIndex ? 'lens-card-shell--active' : ''}`}
                 initial={false}
                 animate={targetFor(pos)}
-                transition={hovered ? SPRING : SPRING_RETURN}
+                transition={hovered ? SPREAD_SPRING : { ...CYCLE_TRANSITION, delay: pos * 0.045 }}
                 style={{ transformOrigin: 'center' }}
               >
-                {/* Thickness: stacked dark plates behind the face so a tilted
-                    card reads as a solid 3D slab instead of a thin sheet. */}
-                {[14, 9, 4].map((depth) => (
-                  <div
-                    key={depth}
-                    className="absolute inset-0 rounded-2xl border-2 border-border/60"
-                    style={{ transform: `translateZ(${-depth}px)`, background: 'hsl(var(--card) / 0.85)', filter: 'brightness(0.62)' }}
+                {cycleMotion.id > 0 && movement && !reduce && (
+                  <motion.div
+                    key={`${cycleMotion.id}-${imgIndex}`}
+                    className="lens-card-motion-trail absolute rounded-full"
+                    initial={{ opacity: 0, x: -movement.x * 18, y: -movement.y * 18, rotate: movement.angle, scaleX: 0.72, scaleY: 0.72, z: -8 }}
+                    animate={{
+                      opacity: [0, 0.16 + movement.strength * 0.24, 0],
+                      x: [-movement.x * 18, 0, movement.x * 10],
+                      y: [-movement.y * 18, 0, movement.y * 10],
+                      rotate: movement.angle,
+                      scaleX: [0.72, 0.96 + movement.strength * 0.16, 0.82],
+                      scaleY: [0.72, 0.86 + movement.strength * 0.06, 0.68],
+                    }}
+                    transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                    style={{ transformStyle: 'preserve-3d' }}
+                    aria-hidden="true"
                   />
-                ))}
-                <div
-                  className="relative h-full w-full overflow-hidden rounded-2xl border-2 border-border bg-card"
-                  style={{
-                    boxShadow: isFront
-                      ? '0 30px 70px -14px hsl(0 0% 0% / 0.55), 0 0 0 1px hsl(0 0% 100% / 0.08) inset, 0 -3px 0 0 hsl(0 0% 0% / 0.35) inset'
-                      : '0 16px 40px -12px hsl(0 0% 0% / 0.45), 0 -3px 0 0 hsl(0 0% 0% / 0.3) inset',
-                  }}
-                >
-                <Image src={images[imgIndex]} alt="" className="h-full w-full object-cover" />
-                {isFront && (
-                  <>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                    {/* scan line */}
-                    <motion.div
-                      className="absolute inset-x-0 h-1/3 bg-gradient-to-b from-primary/0 via-primary/30 to-primary/0"
-                      animate={reduce ? {} : { y: ['-20%', '120%'] }}
-                      transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
-                    />
-                  </>
                 )}
+                {/* One close-fitting backing plate gives each image a clean 3D edge. */}
+                <div
+                  className="lens-card-backing absolute inset-0 rounded-2xl"
+                  style={{ transform: 'translateZ(-4px)' }}
+                />
+                <div
+                  className={`lens-card-face ${isFront ? 'lens-card-face--front' : 'lens-card-face--back'} relative h-full w-full overflow-hidden rounded-2xl border-2 border-border bg-card`}
+                >
+                  <Image
+                    src={images[imgIndex]}
+                    alt=""
+                    loading={isFront ? 'eager' : 'lazy'}
+                    fetchPriority={isFront ? 'high' : 'auto'}
+                    className="lens-card-image h-full w-full object-cover"
+                  />
+                  {isFront && (
+                    <>
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
+                      {/* scan line */}
+                      <motion.div
+                        className="absolute inset-x-0 h-1/3 bg-gradient-to-b from-primary/0 via-primary/20 to-primary/0"
+                        animate={reduce || !isInView ? { y: '-20%' } : { y: ['-20%', '120%'] }}
+                        transition={{ duration: 3.5, repeat: Infinity, ease: 'easeInOut' }}
+                      />
+                      <div className="pointer-events-none absolute inset-0 rounded-2xl border border-white/20 dark:border-white/10" />
+                      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/70 to-transparent dark:via-white/35" />
+                    </>
+                  )}
+                  {hasOrbitLight && (
+                    <svg
+                      className="lens-card-edge"
+                      viewBox="0 0 160 90"
+                      preserveAspectRatio="none"
+                      aria-hidden="true"
+                    >
+                      <rect className="lens-card-edge-track" x="1.5" y="1.5" width="157" height="87" rx="7" />
+                      <motion.rect
+                        className="lens-card-edge-beam"
+                        x="1.5"
+                        y="1.5"
+                        width="157"
+                        height="87"
+                        rx="7"
+                        pathLength="100"
+                        strokeDasharray="14 86"
+                        animate={reduce || !isInView ? { strokeDashoffset: 0 } : { strokeDashoffset: [0, -100] }}
+                        transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
+                      />
+                      <motion.rect
+                        className="lens-card-edge-beam lens-card-edge-beam--opposite"
+                        x="1.5"
+                        y="1.5"
+                        width="157"
+                        height="87"
+                        rx="7"
+                        pathLength="100"
+                        strokeDasharray="14 86"
+                        animate={reduce || !isInView ? { strokeDashoffset: 50 } : { strokeDashoffset: [50, -50] }}
+                        transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
+                      />
+                    </svg>
+                  )}
                 </div>
               </motion.div>
             );
           })}
 
           {/* Floating AI-review chip */}
-          <div
-            className="absolute -end-1 top-[16%] flex items-center gap-2 rounded-2xl border border-border bg-card/90 px-3 py-2 shadow-float backdrop-blur"
-            style={{ transform: 'translateZ(240px)' }}
+          <motion.div
+            className="lens-floating-chip lens-floating-chip--review absolute end-[15%] top-[9%] z-50 flex items-center gap-2 rounded-2xl border border-border bg-card/85 px-3 py-2 backdrop-blur-xl"
+            animate={hovered
+              ? { x: 76, y: -20, z: -60, scale: 0.82, rotateX: 0, rotateY: 0, opacity: 0.72 }
+              : { x: 0, y: 0, z: 245, scale: 1, rotateX: 5, rotateY: -7, opacity: 1 }}
+            transition={SPREAD_SPRING}
+            style={{ transformStyle: 'preserve-3d', pointerEvents: 'none', zIndex: hovered ? 1 : 50 }}
           >
-            <span className="grid h-8 w-8 place-items-center rounded-xl brand-gradient text-white">
+            <span className="lens-chip-icon grid h-8 w-8 place-items-center rounded-xl brand-gradient text-white">
               <Sparkles className="h-3.5 w-3.5" />
             </span>
-            <div className="text-[10px] font-semibold leading-tight text-foreground">
+            <div className="lens-chip-copy text-[10px] font-semibold leading-tight text-foreground">
               {t('hero.chip.reviewTitle')}
               <br />
               <span className="font-medium text-muted-foreground">{t('hero.chip.reviewLabel')}</span>
             </div>
-          </div>
+          </motion.div>
 
           {/* Floating insights chip */}
-          <div
-            className="absolute -start-2 bottom-[16%] flex items-center gap-2 rounded-2xl border border-border bg-card/90 px-3 py-2 shadow-float backdrop-blur"
-            style={{ transform: 'translateZ(230px)' }}
+          <motion.div
+            className="lens-floating-chip lens-floating-chip--insights absolute start-[15%] bottom-[9%] z-50 flex items-center gap-2 rounded-2xl border border-border bg-card/85 px-3 py-2 backdrop-blur-xl"
+            animate={hovered
+              ? { x: -76, y: 20, z: -60, scale: 0.82, rotateX: 0, rotateY: 0, opacity: 0.72 }
+              : { x: 0, y: 0, z: 245, scale: 1, rotateX: -5, rotateY: 7, opacity: 1 }}
+            transition={SPREAD_SPRING}
+            style={{ transformStyle: 'preserve-3d', pointerEvents: 'none', zIndex: hovered ? 1 : 50 }}
           >
-            <span className="grid h-8 w-8 place-items-center rounded-xl bg-secondary text-primary">
+            <span className="lens-chip-icon grid h-8 w-8 place-items-center rounded-xl bg-secondary text-primary">
               <BarChart3 className="h-3.5 w-3.5" />
             </span>
-            <div>
+            <div className="lens-chip-copy">
               <div className="text-[10px] font-medium text-muted-foreground">{t('hero.chip.insightTitle')}</div>
               <div className="text-sm font-extrabold brand-text leading-none">{t('hero.chip.insightLabel')}</div>
             </div>
-          </div>
+          </motion.div>
         </motion.div>
       </motion.div>
 

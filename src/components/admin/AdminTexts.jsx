@@ -37,7 +37,7 @@ export default function AdminTexts({ draft, set }) {
     set({ texts: next });
   };
 
-  const total = Object.keys(texts).length;
+  const total = Object.keys(texts).filter((key) => /^(en|ar)\./.test(key)).length;
 
   return (
     <div className="space-y-5">

@@ -44,7 +44,7 @@ const _clearFromRemoveQueue = (toastId) => {
   }
 };
 
-export const reducer = (state, action) => {
+const reducer = (state, action) => {
   switch (action.type) {
     case actionTypes.ADD_TOAST:
       return {
@@ -161,4 +161,4 @@ function useToast() {
   };
 }
 
-export { useToast, toast }; 
+export { useToast, toast };

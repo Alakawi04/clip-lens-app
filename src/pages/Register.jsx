@@ -1,12 +1,11 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { setRememberSession, supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { UserPlus, Mail, Lock, Loader2 } from "lucide-react";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
-import AuthSplit from "@/components/auth/AuthSplit";
+import { ArrowRight, Lock, Mail, Loader2, UserPlus } from "lucide-react";
+import AuthExperienceShell from "@/components/auth/AuthExperienceShell";
 import GoogleIcon from "@/components/GoogleIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
@@ -21,9 +20,10 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [showOtp, setShowOtp] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+  const returnTo = safeReturnTo();
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError("");
     if (password !== confirmPassword) {
       setError(t("auth.mismatch"));
@@ -31,10 +31,20 @@ export default function Register() {
     }
     setLoading(true);
     try {
-      await base44.auth.register({ email, password });
+      setRememberSession(true);
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}${returnTo}` },
+      });
+      if (signUpError) throw signUpError;
+      if (data.session) {
+        window.location.href = returnTo;
+        return;
+      }
       setShowOtp(true);
-    } catch (err) {
-      setError(err.message || t("auth.error"));
+    } catch (authError) {
+      setError(authError.message || t("auth.error"));
     } finally {
       setLoading(false);
     }
@@ -44,13 +54,11 @@ export default function Register() {
     setError("");
     setLoading(true);
     try {
-      const result = await base44.auth.verifyOtp({ email, otpCode });
-      if (result?.access_token) {
-        base44.auth.setToken(result.access_token);
-      }
-      window.location.href = safeReturnTo();
-    } catch (err) {
-      setError(err.message || t("auth.error"));
+      const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "signup" });
+      if (verifyError) throw verifyError;
+      window.location.href = returnTo;
+    } catch (authError) {
+      setError(authError.message || t("auth.error"));
     } finally {
       setLoading(false);
     }
@@ -59,38 +67,56 @@ export default function Register() {
   const handleResend = async () => {
     setError("");
     try {
-      await base44.auth.resendOtp(email);
+      const { error: resendError } = await supabase.auth.resend({ type: "signup", email });
+      if (resendError) throw resendError;
       toast({
         title: t("auth.otp.toastTitle"),
         description: t("auth.otp.toastDesc"),
       });
-    } catch (err) {
-      setError(err.message || t("auth.error"));
+    } catch (authError) {
+      setError(authError.message || t("auth.error"));
     }
   };
 
-  const handleGoogle = () => {
-    base44.auth.loginWithProvider("google", safeReturnTo());
+  const handleGoogle = async () => {
+    setError("");
+    setLoading(true);
+    try {
+      setRememberSession(true);
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}${returnTo}` },
+      });
+      if (signInError) throw signInError;
+    } catch (authError) {
+      setError(authError.message || t("auth.error"));
+      setLoading(false);
+    }
   };
 
   if (showOtp) {
     return (
-      <AuthSplit
-        icon={Mail}
-        title={t("auth.otp.title")}
-        subtitle={`${t("auth.otp.sent")} ${email}`}
-      >
+      <AuthExperienceShell mode="register">
+        <div className="auth-form-heading mb-8">
+          <div className="auth-heading-icon mb-6 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-red-300/15 bg-gradient-to-br from-primary/20 to-red-950/20 text-red-200 shadow-[0_12px_32px_-14px_rgba(255,0,0,.55)]">
+            <Mail className="h-5 w-5" />
+          </div>
+          <p className="font-mono text-[10px] font-medium uppercase tracking-[.2em] text-red-300/80">{t("auth.login.eyebrow")}</p>
+          <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{t("auth.otp.title")}</h1>
+          <p className="mt-3 text-sm leading-6 text-white/55">{t("auth.otp.sent")} {email}</p>
+        </div>
+
         {error && (
-          <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
+          <div className="mb-5 rounded-xl border border-rose-300/20 bg-rose-400/[.08] p-3.5 text-sm text-rose-100" role="alert" aria-live="polite">
             {error}
           </div>
         )}
-        <div className="flex justify-center mb-6">
+
+        <div className="mb-6 flex justify-center">
           <InputOTP
             maxLength={6}
             value={otpCode}
             onChange={setOtpCode}
-            autoFocus
             autoComplete="one-time-code"
           >
             <InputOTPGroup>
@@ -103,134 +129,142 @@ export default function Register() {
             </InputOTPGroup>
           </InputOTP>
         </div>
+
         <Button
-          className="w-full h-12 font-semibold"
+          className="auth-register-submit h-[52px] w-full rounded-xl border border-red-200/20 bg-gradient-to-r from-primary to-[#d51d2c] font-bold text-white shadow-[0_12px_32px_-18px_rgba(255,0,0,.75)] transition-all hover:-translate-y-0.5 hover:from-[#ed1b2b] hover:to-[#bd1423] active:translate-y-0 focus-visible:ring-2 focus-visible:ring-red-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0d10]"
           onClick={handleVerify}
           disabled={loading || otpCode.length < 6}
         >
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="me-2 h-4 w-4 animate-spin" />
               {t("auth.otp.verifying")}
             </>
           ) : (
             t("auth.otp.verify")
           )}
         </Button>
-        <p className="text-center text-sm text-muted-foreground mt-4">
+        <p className="mt-5 text-center text-sm text-white/50">
           {t("auth.otp.resendQ")}{" "}
-          <button onClick={handleResend} className="text-primary font-medium hover:underline">
+          <button onClick={handleResend} className="font-semibold text-red-300 hover:text-red-200 hover:underline">
             {t("auth.otp.resend")}
           </button>
         </p>
-      </AuthSplit>
+      </AuthExperienceShell>
     );
   }
 
   return (
-    <AuthSplit
-      icon={UserPlus}
-      title={t("auth.register.title")}
-      subtitle={t("auth.register.subtitle")}
-      footer={
-        <>
-          {t("auth.register.hasAccount")}{" "}
-          <Link
-            to={"/login" + (safeReturnTo() !== "/" ? "?returnTo=" + encodeURIComponent(safeReturnTo()) : "")}
-            className="text-primary font-medium hover:underline"
-          >
-            {t("auth.login.submit")}
-          </Link>
-        </>
-      }
-    >
-      <Button
-        variant="outline"
-        className="w-full h-12 text-sm font-medium mb-6 transition-all hover:border-primary/50 hover:bg-secondary active:scale-[0.98]"
-        onClick={handleGoogle}
-      >
-        <GoogleIcon className="w-5 h-5 me-2" />
-        {t("auth.google")}
-      </Button>
-
-      <div className="relative mb-6">
-        <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-border" />
+    <AuthExperienceShell mode="register">
+      <div className="auth-form-heading mb-7">
+        <div className="auth-heading-icon mb-6 inline-flex h-11 w-11 items-center justify-center rounded-2xl border border-red-300/15 bg-gradient-to-br from-primary/20 to-red-950/20 text-red-200 shadow-[0_12px_32px_-14px_rgba(255,0,0,.55)]">
+          <UserPlus className="h-5 w-5" />
         </div>
-        <div className="relative flex justify-center text-xs uppercase">
-          <span className="bg-card px-3 text-muted-foreground">{t("auth.or")}</span>
-        </div>
+        <p className="font-mono text-[10px] font-medium uppercase tracking-[.2em] text-red-300/80">{t("auth.login.eyebrow")}</p>
+        <h1 className="mt-3 font-display text-3xl font-extrabold tracking-tight sm:text-4xl">{t("auth.register.title")}</h1>
+        <p className="mt-3 max-w-sm text-sm leading-6 text-white/55">{t("auth.register.subtitle")}</p>
       </div>
 
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm" role="alert">
+        <div className="mb-4 rounded-xl border border-rose-300/20 bg-rose-400/[.08] p-3.5 text-sm text-rose-100" role="alert" aria-live="polite">
           {error}
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="space-y-2">
-          <Label htmlFor="email" className="text-sm font-medium text-foreground">{t("auth.email")}</Label>
-          <div className="relative">
-            <Mail className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+      <form onSubmit={handleSubmit} autoComplete="off" className="auth-register-form space-y-3.5">
+        <div className="space-y-1.5">
+          <Label htmlFor="register-email" className="text-xs font-normal text-white/75">{t("auth.email")}</Label>
+          <div className="group relative">
+            <Mail className="absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35 transition-colors group-focus-within:text-red-300" aria-hidden="true" />
             <Input
-              id="email"
+              id="register-email"
+              name="register-email"
               type="email"
-              autoComplete="email"
-              autoFocus
+              autoComplete="off"
               placeholder="you@example.com"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="ps-10 h-12"
+              onChange={(event) => setEmail(event.target.value)}
+              className="h-12 rounded-xl border-white/[.11] bg-white/[.035] ps-11 text-white placeholder:text-white/30 shadow-none transition-colors hover:border-white/20 focus-visible:border-red-300/60 focus-visible:ring-2 focus-visible:ring-red-400/15"
               required
             />
           </div>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="password" className="text-sm font-medium text-foreground">{t("auth.password")}</Label>
-          <div className="relative">
-            <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+
+        <div className="space-y-1.5">
+          <Label htmlFor="register-password" className="text-xs font-normal text-white/75">{t("auth.password")}</Label>
+          <div className="group relative">
+            <Lock className="absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35 transition-colors group-focus-within:text-red-300" aria-hidden="true" />
             <Input
-              id="password"
+              id="register-password"
+              name="register-password"
               type="password"
               autoComplete="new-password"
               placeholder="••••••••"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="ps-10 h-12"
+              onChange={(event) => setPassword(event.target.value)}
+              className="h-12 rounded-xl border-white/[.11] bg-white/[.035] ps-11 text-white placeholder:text-white/30 shadow-none transition-colors hover:border-white/20 focus-visible:border-red-300/60 focus-visible:ring-2 focus-visible:ring-red-400/15"
               required
               minLength={8}
             />
           </div>
-          <p className="text-xs text-muted-foreground">{t("auth.register.minChars")}</p>
+          <p className="text-[11px] text-white/40">{t("auth.register.minChars")}</p>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="confirm" className="text-sm font-medium text-foreground">{t("auth.confirmPassword")}</Label>
-          <div className="relative">
-            <Lock className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" aria-hidden="true" />
+
+        <div className="space-y-1.5">
+          <Label htmlFor="confirm-password" className="text-xs font-normal text-white/75">{t("auth.confirmPassword")}</Label>
+          <div className="group relative">
+            <Lock className="absolute start-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35 transition-colors group-focus-within:text-red-300" aria-hidden="true" />
             <Input
-              id="confirm"
+              id="confirm-password"
+              name="confirm-password"
               type="password"
               autoComplete="new-password"
               placeholder="••••••••"
               value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="ps-10 h-12"
+              onChange={(event) => setConfirmPassword(event.target.value)}
+              className="h-12 rounded-xl border-white/[.11] bg-white/[.035] ps-11 text-white placeholder:text-white/30 shadow-none transition-colors hover:border-white/20 focus-visible:border-red-300/60 focus-visible:ring-2 focus-visible:ring-red-400/15"
               required
             />
           </div>
         </div>
-        <Button type="submit" className="w-full h-12 font-semibold" disabled={loading}>
+
+        <Button
+          type="submit"
+          className="group mt-1 h-[52px] w-full rounded-xl border border-red-200/20 bg-gradient-to-r from-primary to-[#d51d2c] text-sm font-extrabold text-white shadow-[0_12px_32px_-18px_rgba(255,0,0,.75)] transition-all duration-200 hover:-translate-y-0.5 hover:from-[#ed1b2b] hover:to-[#bd1423] hover:shadow-[0_16px_38px_-18px_rgba(255,0,0,.85)] active:translate-y-0 focus-visible:ring-2 focus-visible:ring-red-200 focus-visible:ring-offset-2 focus-visible:ring-offset-[#0d0d10]"
+          disabled={loading}
+        >
           {loading ? (
             <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              <Loader2 className="me-2 h-4 w-4 animate-spin" />
               {t("auth.register.loading")}
             </>
           ) : (
-            t("auth.register.submit")
+            <>
+              {t("auth.register.submit")}
+              <ArrowRight className="ms-2 h-4 w-4 rtl:rotate-180" />
+            </>
           )}
         </Button>
       </form>
-    </AuthSplit>
+
+      <div className="auth-social-divider relative my-5">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-white/[.09]" />
+        </div>
+        <div className="relative flex justify-center text-[10px] uppercase tracking-[.18em]">
+          <span className="bg-[#0d0d10] px-3 font-mono font-medium text-white/35">{t("auth.login.orContinueWith")}</span>
+        </div>
+      </div>
+
+      <Button
+        variant="outline"
+        className="auth-social-button h-[50px] w-full rounded-xl border-white/[.12] bg-white/[.035] text-sm font-normal text-white/90 shadow-none transition-colors hover:border-red-200/25 hover:bg-white/[.075] hover:text-white focus-visible:ring-red-300"
+        onClick={handleGoogle}
+        disabled={loading}
+      >
+        {loading ? <Loader2 className="me-2 h-4 w-4 animate-spin" /> : <GoogleIcon className="me-2 h-5 w-5" />}
+        {t("auth.google")}
+      </Button>
+    </AuthExperienceShell>
   );
 }

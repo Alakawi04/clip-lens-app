@@ -1,14 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Coins, Check, Loader2, UserCheck, UserX } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { backend } from '@/api/supabaseClient';
 import { useI18n } from '@/lib/i18n';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
 
-// Credits & subscriptions admin: the on/off switch and its settings (saved
-// with the shared admin Save button), plus pending Pro requests and the
-// per-user credit accounts table.
+// Credit settings and per-user credit account administration.
 export default function AdminBilling({ draft, set }) {
   const { t } = useI18n();
   const { settings } = useSiteSettings();
@@ -21,8 +19,8 @@ export default function AdminBilling({ draft, set }) {
   const load = useCallback(async () => {
     try {
       const [rp, ap] = await Promise.all([
-        base44.entities.UpgradeRequest.filter({ status: 'pending' }, { sort: '-created_date', limit: 50 }),
-        base44.entities.CreditAccount.filter({}, { sort: '-updated_date', limit: 50 }),
+        backend.data.UpgradeRequest.filter({ status: 'pending' }, { sort: '-created_date', limit: 50 }),
+        backend.data.CreditAccount.filter({}, { sort: '-updated_date', limit: 50 }),
       ]);
       setRequests(rp.items || []);
       setAccounts(ap.items || []);
@@ -40,6 +38,7 @@ export default function AdminBilling({ draft, set }) {
       <input
         type="number"
         min="0"
+        step={key === 'credits_pro_price' ? '0.01' : '1'}
         dir="ltr"
         value={draft[key] ?? 0}
         onChange={(e) => set({ [key]: Math.max(0, Number(e.target.value) || 0) })}
@@ -53,23 +52,23 @@ export default function AdminBilling({ draft, set }) {
     try {
       const amount = Number(settings.credits_pro_amount) || 0;
       const now = new Date().toISOString();
-      const page = await base44.entities.CreditAccount.filter({ user_id: req.user_id }, { limit: 1 });
+      const page = await backend.data.CreditAccount.filter({ user_id: req.user_id }, { limit: 1 });
       const acc = page.items?.[0];
       if (acc) {
-        await base44.entities.CreditAccount.update(acc.id, {
+        await backend.data.CreditAccount.update(acc.id, {
           plan: 'pro',
           balance: (acc.balance || 0) + amount,
           history: [...(acc.history || []), { change: amount, reason: 'pro_upgrade', date: now }],
         });
       } else {
-        await base44.entities.CreditAccount.create({
+        await backend.data.CreditAccount.create({
           user_id: req.user_id,
           plan: 'pro',
           balance: amount,
           history: [{ change: amount, reason: 'pro_upgrade', date: now }],
         });
       }
-      await base44.entities.UpgradeRequest.update(req.id, { status: 'approved' });
+      await backend.data.UpgradeRequest.update(req.id, { status: 'approved' });
       await load();
     } finally {
       setBusy('');
@@ -79,7 +78,7 @@ export default function AdminBilling({ draft, set }) {
   const reject = async (req) => {
     setBusy(req.id);
     try {
-      await base44.entities.UpgradeRequest.update(req.id, { status: 'rejected' });
+      await backend.data.UpgradeRequest.update(req.id, { status: 'rejected' });
       await load();
     } finally {
       setBusy('');
@@ -90,7 +89,7 @@ export default function AdminBilling({ draft, set }) {
     setBusy(acc.id);
     try {
       const e = edits[acc.id] || {};
-      await base44.entities.CreditAccount.update(acc.id, {
+      await backend.data.CreditAccount.update(acc.id, {
         plan: e.plan ?? acc.plan,
         balance: typeof e.balance === 'number' ? e.balance : acc.balance,
       });
@@ -129,8 +128,9 @@ export default function AdminBilling({ draft, set }) {
           />
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {numField('credits_cost', 'admin.billing.cost')}
+          {numField('credits_upload_cost', 'admin.billing.uploadCost')}
           {numField('credits_signup', 'admin.billing.signup')}
           {numField('credits_pro_price', 'admin.billing.proPrice')}
           {numField('credits_pro_amount', 'admin.billing.proAmount')}

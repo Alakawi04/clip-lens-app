@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Upload, Plus, X, Loader2 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { uploadPublicFile } from '@/api/supabaseClient';
 import { Image } from '@/components/ui/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,10 +26,15 @@ export default function AdminContent({ draft, set }) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
-    addImage(file_url);
-    setUploading(false);
-    e.target.value = '';
+    try {
+      const { file_url } = await uploadPublicFile({ file });
+      addImage(file_url);
+    } catch (error) {
+      console.error('Failed to upload gallery image:', error);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
   };
 
   const removeImage = (index) => set({ gallery_images: gallery.filter((_, i) => i !== index) });

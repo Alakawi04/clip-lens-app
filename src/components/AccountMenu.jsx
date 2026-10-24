@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import {
   LogOut,
@@ -17,7 +18,7 @@ const LANGS = [
 ];
 
 // iOS-style account menu: avatar chip + glass dropdown (language lives in here).
-export default function AccountMenu({ showLabel = false }) {
+export default function AccountMenu({ showLabel = false, labelStyle, displayLabel, labelClassName }) {
   const { user, isAuthenticated, logout } = useAuth();
   const { t, lang, setLang } = useI18n();
   const navigate = useNavigate();
@@ -53,7 +54,7 @@ export default function AccountMenu({ showLabel = false }) {
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label={t('auth.account')}
-        className="inline-flex items-center gap-1.5 rounded-full border border-border bg-card/60 p-1 pe-2 transition-all hover:bg-card active:scale-95"
+        className="navbar-account-trigger inline-flex h-10 items-center gap-1.5 rounded-full border border-white/20 bg-white/10 p-1 pe-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.24)] backdrop-blur-sm transition-[color,background-color,box-shadow] hover:bg-white/20 active:scale-95 dark:border-white/12 dark:bg-black/35 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.14)] dark:hover:bg-black/25"
       >
         {isAuthenticated ? (
           <span className="grid h-7 w-7 place-items-center rounded-full brand-gradient text-xs font-bold text-white">
@@ -65,16 +66,21 @@ export default function AccountMenu({ showLabel = false }) {
           </span>
         )}
         {showLabel && (
-          <span className="hidden text-xs font-semibold sm:inline">{t('nav.profile')}</span>
+          <motion.span
+            className={labelClassName || 'hidden overflow-hidden whitespace-nowrap text-xs font-semibold lg:inline-block'}
+            style={labelStyle}
+          >
+            {displayLabel || t('nav.profile')}
+          </motion.span>
         )}
         <ChevronDown className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute end-0 z-50 mt-2 w-60 overflow-hidden rounded-2xl border border-border bg-popover/95 p-1.5 shadow-float backdrop-blur-xl">
+        <div className="account-menu-popover absolute left-0 right-auto z-50 mt-2 w-[min(15rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border border-border bg-popover/95 p-1.5 shadow-float backdrop-blur-xl">
           {isAuthenticated && (
             <div className="border-b border-border px-3 py-2.5">
-              <p className="truncate text-sm font-semibold">{user?.full_name || t('auth.account')}</p>
+              <p className="truncate text-sm font-semibold">{t('nav.profile')}</p>
               {user?.email && <p className="truncate text-xs text-muted-foreground">{user.email}</p>}
             </div>
           )}

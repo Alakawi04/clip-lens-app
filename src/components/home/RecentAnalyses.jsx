@@ -1,21 +1,35 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { Clock, ArrowRight, Sparkles } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { ArrowRight, ArrowUpRight, Clapperboard, Clock, FileVideo, Play, Sparkles, Youtube } from 'lucide-react';
+import { Sieve } from '@lucasmarkes/hairline/react';
+import { backend } from '@/api/supabaseClient';
 import StatusBadge from '@/components/StatusBadge';
 import { Image } from '@/components/ui/image';
 import { useI18n } from '@/lib/i18n';
+import ScrollSection from './ScrollSection';
+import RevealCard from './RevealCard';
+import ScrollTypingText from './ScrollTypingText';
+import { useFinePointer } from '@/hooks/use-pointer-capability';
+
+const ENTRANCES = ['glideStart', 'settle', 'glideEnd', 'lift'];
+
+function formatAnalysisDate(value, lang) {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar' : 'en', { month: 'short', day: 'numeric' }).format(date);
+}
 
 export default function RecentAnalyses() {
-  const { t } = useI18n();
+  const finePointer = useFinePointer();
+  const { t, lang } = useI18n();
   const [items, setItems] = useState(null); // null = loading, [] = empty
 
   useEffect(() => {
     let active = true;
     (async () => {
       try {
-        const page = await base44.entities.Analysis.filter(
+        const page = await backend.data.Analysis.filter(
           {},
           { sort: '-created_date', limit: 4, fields: ['source_type', 'source_label', 'status', 'score', 'thumbnail_url', 'created_date'] }
         );
@@ -28,88 +42,60 @@ export default function RecentAnalyses() {
   }, []);
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:flex lg:min-h-screen lg:flex-col lg:justify-center lg:snap-start lg:px-8">
-      <div className="flex items-end justify-between gap-4">
-        <div>
-          <h2 className="fly-3d font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('recent.title')}</h2>
-          <p className="mt-2 text-muted-foreground">{t('recent.subtitle')}</p>
-        </div>
-        {items && items.length > 0 && (
-          <Link
-            to="/history"
-            className="inline-flex shrink-0 items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
-          >
-            {t('recent.viewAll')}
-            <ArrowRight className="h-4 w-4 rtl:rotate-180" />
-          </Link>
-        )}
-      </div>
+    <ScrollSection className="recent-log mx-auto max-w-[1440px] px-4 py-16 sm:px-8 sm:py-24 lg:px-12">
+      <header className="recent-log-heading">
+        <div><span className="recent-log-kicker"><i /><Clock className="h-3.5 w-3.5" />CL / 06</span><ScrollTypingText as="h2" text={t('recent.title')} /><ScrollTypingText as="p" text={t('recent.subtitle')} delay={100} /></div>
+        {items?.length > 0 && <Link to="/history" className="recent-log-viewall">{t('recent.viewAll')}<ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link>}
+      </header>
 
       {items === null ? (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-44 animate-pulse rounded-2xl border border-border bg-muted/40" />
-          ))}
+        <div className="recent-log-list" aria-label={t('common.loading')}>
+          {Array.from({ length: 3 }, (_, index) => <div key={index} className="recent-log-skeleton"><span /><i /><b /><em /></div>)}
         </div>
       ) : items.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mt-6 flex flex-col items-center justify-center rounded-3xl border border-dashed border-border bg-card/50 px-6 py-14 text-center"
-        >
-          <span className="grid h-14 w-14 place-items-center rounded-2xl bg-secondary text-muted-foreground">
-            <Clock className="h-7 w-7" />
-          </span>
-          <p className="mt-4 max-w-sm text-sm text-muted-foreground">{t('recent.empty')}</p>
-          <Link
-            to="/analyze"
-            className="btn-3d mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft"
-          >
-            <Sparkles className="h-4 w-4" />
-            {t('recent.emptyCta')}
-          </Link>
-        </motion.div>
+        <div className="recent-log-empty">
+          {finePointer && <Sieve className="recent-empty-figure" intensity={0.32} theme="auto" aria-hidden="true" />}
+          <div><ScrollTypingText as="p" text={t('recent.empty')} /><Link to="/analyze"><Sparkles className="h-4 w-4" />{t('recent.emptyCta')}<ArrowRight className="h-4 w-4 rtl:rotate-180" /></Link></div>
+        </div>
       ) : (
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {items.map((a, i) => (
-            <motion.div
-              key={a.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: i * 0.06 }}
-            >
-              <Link
-                to={a.status === 'completed' ? `/results/${a.id}` : `/progress/${a.id}`}
-                className="hover-3d group block overflow-hidden rounded-2xl border border-border bg-card shadow-soft"
-              >
-                <div className="relative aspect-video bg-muted">
-                  {a.thumbnail_url ? (
-                    <Image src={a.thumbnail_url} alt="" className="h-full w-full object-cover" />
+        <div className="recent-log-list">
+          {items.map((analysis, index) => (
+            <RevealCard key={analysis.id} delay={index * 0.07} variant={ENTRANCES[index % ENTRANCES.length]}>
+              <Link to={analysis.status === 'completed' ? `/results/${analysis.id}` : `/progress/${analysis.id}`} className="recent-log-row group">
+                <div className="recent-log-thumb">
+                  {analysis.thumbnail_url ? (
+                    <>
+                      <Image src={analysis.thumbnail_url} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                      <span className="recent-thumb-play" aria-hidden="true"><Play className="h-4 w-4 fill-current" /></span>
+                    </>
                   ) : (
-                    <div className="h-full w-full animate-pulse bg-muted" />
-                  )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 to-transparent" />
-                  <div className="absolute end-2 top-2">
-                    <StatusBadge status={a.status} />
-                  </div>
-                  {a.score != null && a.status === 'completed' && (
-                    <div className="absolute bottom-2 start-2 rounded-lg bg-black/60 px-2 py-0.5 text-xs font-bold text-white backdrop-blur">
-                      {t('recent.score')} {a.score}
-                    </div>
+                    <span className={`recent-thumb-placeholder ${analysis.source_type === 'youtube' ? 'is-youtube' : 'is-upload'}`} aria-hidden="true">
+                      <i className="recent-thumb-orbit"><Clapperboard className="h-6 w-6" /></i>
+                      <span className="recent-thumb-bars"><i /><i /><i /><i /><i /><i /><i /></span>
+                      <b>CLIP LENS</b>
+                    </span>
                   )}
                 </div>
-                <div className="p-3">
-                  <div className="flex items-center gap-2 text-[11px] font-medium text-muted-foreground">
-                    {a.source_type === 'youtube' ? t('recent.type.youtube') : t('recent.type.upload')}
+                <div className="recent-log-main">
+                  <div className="recent-log-meta-line">
+                    <span className="recent-log-type">
+                      {analysis.source_type === 'youtube' ? <Youtube className="h-3.5 w-3.5" aria-hidden="true" /> : <FileVideo className="h-3.5 w-3.5" aria-hidden="true" />}
+                      {analysis.source_type === 'youtube' ? t('recent.type.youtube') : t('recent.type.upload')}
+                    </span>
+                    {formatAnalysisDate(analysis.created_date, lang) && <time className="recent-log-date" dateTime={analysis.created_date}>{formatAnalysisDate(analysis.created_date, lang)}</time>}
                   </div>
-                  <p className="mt-1 line-clamp-1 text-sm font-semibold">{a.source_label || '—'}</p>
+                  <ScrollTypingText as="p" text={analysis.source_label || '—'} />
+                  <div className="recent-log-facts">
+                    <div className="recent-log-state"><StatusBadge status={analysis.status} /></div>
+                    {analysis.score != null && analysis.status === 'completed' && <span className="recent-log-score"><b>{analysis.score}</b><small>{t('recent.score')}</small></span>}
+                  </div>
                 </div>
+                <ArrowUpRight className="recent-log-arrow h-5 w-5" aria-hidden="true" />
               </Link>
-            </motion.div>
+            </RevealCard>
           ))}
         </div>
       )}
-    </section>
+    </ScrollSection>
   );
 }

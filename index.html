@@ -2,12 +2,253 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="https://base44.com/logo_v2.svg" />
+    <link rel="icon" type="image/png" href="/cliplens-logo.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="manifest" href="/manifest.json" />
-    <title>Base44 APP</title>
+    <script>
+      window.__clipLensBootAt = performance.now();
+      try {
+        const savedUserTheme = localStorage.getItem('theme');
+        const userTheme = savedUserTheme === 'light' || savedUserTheme === 'dark' ? savedUserTheme : null;
+        const savedSiteTheme = localStorage.getItem('clip-lens-site-theme') || 'dark';
+        const initialTheme = userTheme || savedSiteTheme;
+        document.documentElement.classList.toggle('dark', initialTheme === 'dark');
+        document.documentElement.dataset.siteTheme = initialTheme;
+        const savedLanguage = localStorage.getItem('cliplens-lang');
+        if (savedLanguage === 'ar' || savedLanguage === 'en') {
+          document.documentElement.lang = savedLanguage;
+          document.documentElement.dir = savedLanguage === 'ar' ? 'rtl' : 'ltr';
+          document.documentElement.dataset.loaderLang = savedLanguage;
+        }
+        document.documentElement.classList.add('is-booting');
+      } catch {
+        document.documentElement.classList.add('is-booting');
+      }
+    </script>
+    <style>
+      html, body { min-height: 100%; margin: 0; }
+      html { background-color: #08090b; }
+      html:not(.dark) { color-scheme: light; background-color: #f4f3f1; }
+      html { scrollbar-width: none; -ms-overflow-style: none; }
+      html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+      html.is-booting, html.is-booting body { overflow: hidden; overscroll-behavior: none; }
+      #root { min-height: 100vh; isolation: isolate; }
+      #initial-page-loader {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        overflow: hidden;
+        padding: 1.5rem;
+        box-sizing: border-box;
+        color: #f8f7f7;
+        background:
+          radial-gradient(ellipse 31rem 26rem at 50% 46%, rgb(255 0 28 / 0.085), transparent 72%),
+          radial-gradient(ellipse 46rem 38rem at 50% 115%, rgb(255 255 255 / 0.025), transparent 74%),
+          rgb(8 9 11 / 0.96);
+        -webkit-backdrop-filter: blur(16px) saturate(0.55) brightness(0.42);
+        backdrop-filter: blur(16px) saturate(0.55) brightness(0.42);
+        opacity: 1;
+        filter: blur(0);
+        transform: scale(1);
+        transition: opacity 850ms ease, filter 850ms ease, transform 850ms cubic-bezier(0.2, 0.7, 0.2, 1), visibility 0s linear 850ms;
+        will-change: opacity, filter, transform;
+      }
+      #initial-page-loader::before {
+        position: absolute;
+        inset: -20%;
+        z-index: 0;
+        background: radial-gradient(ellipse at 50% 48%, rgb(255 25 43 / 0.075), transparent 34%);
+        content: '';
+        animation: loader-ambient 7s ease-in-out infinite alternate;
+        pointer-events: none;
+      }
+      #initial-page-loader.is-ready {
+        visibility: hidden;
+        pointer-events: none;
+        opacity: 0;
+        filter: blur(10px);
+        transform: scale(1.035);
+      }
+      html:not(.dark) #initial-page-loader {
+        color: #232326;
+        background:
+          radial-gradient(ellipse 31rem 26rem at 50% 46%, rgb(255 0 28 / 0.055), transparent 72%),
+          radial-gradient(ellipse 46rem 38rem at 50% 115%, rgb(10 10 12 / 0.035), transparent 74%),
+          rgb(246 245 243 / 0.97);
+        -webkit-backdrop-filter: blur(16px) saturate(0.9) brightness(1);
+        backdrop-filter: blur(16px) saturate(0.9) brightness(1);
+      }
+      html:not(.dark) #initial-page-loader::before { background: radial-gradient(ellipse at 50% 48%, rgb(255 25 43 / 0.045), transparent 34%); }
+      html:not(.dark) .initial-loader-watermark { color: rgb(20 20 24 / 0.045); }
+      html:not(.dark) .initial-loader-brand { color: #202024; }
+      html:not(.dark) .initial-loader-tagline { color: rgb(32 32 36 / 0.58); }
+      html:not(.dark) .initial-loader-status { color: rgb(32 32 36 / 0.72); }
+      html:not(.dark) .initial-loader-slow { color: #b42335; }
+      .initial-loader-watermark {
+        position: absolute;
+        inset: 24% 0 auto;
+        overflow: visible;
+        width: 100%;
+        color: rgb(255 255 255 / 0.05);
+        font: 900 clamp(2.2rem, 8vw, 6rem)/0.9 system-ui, sans-serif;
+        letter-spacing: -0.09em;
+        text-align: center;
+        white-space: nowrap;
+        transform: translateY(-50%);
+        user-select: none;
+        pointer-events: none;
+      }
+      .initial-loader-content {
+        position: relative;
+        z-index: 1;
+        display: grid;
+        justify-items: center;
+        width: min(100%, 42rem);
+        gap: clamp(0.8rem, 2.6vh, 1.35rem);
+        text-align: center;
+      }
+      .initial-loader-mark {
+        width: clamp(5.25rem, 15vw, 8.75rem);
+        aspect-ratio: 1;
+        object-fit: contain;
+        filter: drop-shadow(0 16px 34px rgb(255 0 22 / 0.23));
+        transform-origin: 50% 60%;
+        animation: loader-mark-arrive 1.15s cubic-bezier(0.18, 0.7, 0.2, 1) both;
+      }
+      .initial-loader-brand {
+        color: #fff;
+        font: 850 clamp(2.9rem, 9vw, 4.8rem)/0.98 system-ui, sans-serif;
+        letter-spacing: -0.085em;
+        animation: loader-copy-arrive 850ms 100ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      .initial-loader-brand span { color: #ff0000; }
+      .initial-loader-tagline {
+        margin: 0;
+        color: rgb(255 255 255 / 0.56);
+        font: 500 clamp(0.88rem, 2.6vw, 1.05rem)/1.6 system-ui, sans-serif;
+        animation: loader-copy-arrive 850ms 220ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      .initial-loader-tagline-ar { display: none; }
+      html[data-loader-lang="ar"] .initial-loader-tagline-en { display: none; }
+      html[data-loader-lang="ar"] .initial-loader-tagline-ar { display: block; }
+      .initial-loader-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.7rem;
+        margin-top: clamp(0.45rem, 1.5vh, 0.9rem);
+        color: rgb(255 255 255 / 0.76);
+        font: 600 0.78rem/1.5 system-ui, sans-serif;
+        animation: loader-copy-arrive 850ms 340ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      .initial-loader-status-ar { display: none; }
+      html[data-loader-lang="ar"] .initial-loader-status-en { display: none; }
+      html[data-loader-lang="ar"] .initial-loader-status-ar { display: inline; }
+      .initial-loader-equalizer { display: inline-flex; align-items: center; gap: 3px; height: 1rem; }
+      .initial-loader-equalizer i { width: 2px; height: 0.35rem; border-radius: 2px; background: #ff263e; animation: loader-equalize 900ms ease-in-out infinite alternate; }
+      .initial-loader-equalizer i:nth-child(2) { animation-delay: 140ms; }
+      .initial-loader-equalizer i:nth-child(3) { animation-delay: 280ms; }
+      .initial-loader-equalizer i:nth-child(4) { animation-delay: 420ms; }
+      .initial-loader-progress {
+        position: relative;
+        width: clamp(7rem, 25vw, 10rem);
+        height: 2px;
+        overflow: hidden;
+        margin-top: 0.1rem;
+        border-radius: 999px;
+        background: rgb(255 30 42 / 0.14);
+        box-shadow: 0 0 14px rgb(255 0 22 / 0.12);
+        animation: loader-copy-arrive 850ms 420ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+      }
+      .initial-loader-progress::after {
+        position: absolute;
+        inset: 0 auto 0 -35%;
+        width: 35%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, transparent, #c90017 28%, #ff0000 62%, #a90014 84%, transparent);
+        box-shadow: 0 0 12px rgb(255 0 22 / 0.8);
+        content: '';
+        animation: loader-scan 1.65s cubic-bezier(0.5, 0, 0.3, 1) infinite;
+      }
+      .initial-loader-slow { display: none; margin: 0.25rem 0 0; color: #ff9aa4; font: 500 0.72rem/1.6 system-ui, sans-serif; animation: loader-copy-arrive 500ms ease both; }
+      .initial-loader-slow-ar { display: none; }
+      html[data-loader-lang="ar"] .initial-loader-slow-en { display: none; }
+      html[data-loader-lang="ar"] .initial-loader-slow-ar { display: inline; }
+      .initial-loader-slow a { display: inline-block; margin-inline-start: 0.3rem; color: #ff5d70; text-decoration: underline; text-underline-offset: 3px; }
+      .initial-loader-slow-ar, .initial-loader-retry-ar { display: none; }
+      html[data-loader-lang="ar"] .initial-loader-retry-en { display: none; }
+      html[data-loader-lang="ar"] .initial-loader-retry-ar { display: inline-block; }
+      #initial-page-loader.is-slow .initial-loader-slow { display: block; }
+      @keyframes loader-ambient { from { transform: scale(0.92); opacity: 0.58; } to { transform: scale(1.08); opacity: 1; } }
+      @keyframes loader-mark-arrive {
+        0% { opacity: 0; filter: blur(16px) drop-shadow(0 16px 34px rgb(255 0 22 / 0.12)); transform: perspective(700px) rotateY(-18deg) translateY(18px) scale(0.88); }
+        100% { opacity: 1; filter: drop-shadow(0 16px 34px rgb(255 0 22 / 0.23)); transform: perspective(700px) rotateY(0) translateY(0) scale(1); }
+      }
+      @keyframes loader-copy-arrive { from { opacity: 0; filter: blur(8px); transform: translateY(12px); } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
+      @keyframes loader-equalize { from { height: 0.32rem; opacity: 0.48; } to { height: 0.92rem; opacity: 1; } }
+      @keyframes loader-scan { from { transform: translateX(0); opacity: 0; } 18% { opacity: 1; } 82% { opacity: 1; } to { transform: translateX(390%); opacity: 0; } }
+      @media (max-width: 420px) {
+        #initial-page-loader { padding: 1.25rem; }
+        .initial-loader-content { gap: 0.9rem; }
+        .initial-loader-brand { font-size: clamp(2.7rem, 12vw, 3.25rem); }
+      }
+      @media (max-height: 600px) {
+        .initial-loader-watermark { inset-block-start: 16%; font-size: clamp(1.8rem, 7vw, 3rem); }
+        .initial-loader-mark { width: clamp(3.5rem, 17vh, 6.25rem); }
+        .initial-loader-content { gap: 0.55rem; }
+        .initial-loader-brand { font-size: clamp(2rem, 8vh, 3rem); }
+        .initial-loader-status { margin-top: 0.2rem; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        #initial-page-loader { transition-duration: 1ms; transition-delay: 0s; }
+        #initial-page-loader::before, .initial-loader-mark, .initial-loader-equalizer i, .initial-loader-progress::after { animation: none; }
+        .initial-loader-mark, .initial-loader-brand, .initial-loader-tagline, .initial-loader-status { filter: none; opacity: 1; transform: none; }
+        .initial-loader-equalizer i { height: 0.65rem; opacity: 0.85; }
+        .initial-loader-progress::after { left: 35%; width: 30%; opacity: 0.85; }
+      }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      id="cliplens-site-fonts"
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Manrope&family=IBM+Plex+Sans+Arabic&display=swap"
+      media="print"
+      onload="this.media='all'"
+    />
+    <title>ClipLens</title>
   </head>
   <body>
+    <div id="initial-page-loader" role="status" aria-live="polite">
+      <div class="initial-loader-watermark" aria-hidden="true">CLIPLENS</div>
+      <div class="initial-loader-content">
+        <img class="initial-loader-mark" src="/cliplens-logo.png" alt="" fetchpriority="high" />
+        <div class="initial-loader-brand">Clip<span>Lens</span></div>
+        <p class="initial-loader-tagline initial-loader-tagline-en">Make every video look worth the click</p>
+        <p class="initial-loader-tagline initial-loader-tagline-ar" lang="ar" dir="rtl">خلّي كل فيديو يستحق النقرة</p>
+        <div class="initial-loader-status">
+          <span class="initial-loader-equalizer" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+          <span class="initial-loader-status-en">Preparing your creative studio</span>
+          <span class="initial-loader-status-ar" lang="ar" dir="rtl">نجهّز استوديو ClipLens</span>
+        </div>
+        <div class="initial-loader-progress" aria-hidden="true"></div>
+        <p class="initial-loader-slow">
+          <span class="initial-loader-slow-en">Resources are taking longer than usual.</span>
+          <span class="initial-loader-slow-ar" lang="ar" dir="rtl">تحميل الموارد يستغرق وقتًا أطول من المعتاد.</span>
+          <a href="" class="initial-loader-retry-en">Reload</a>
+          <a href="" class="initial-loader-retry-ar" lang="ar" dir="rtl">إعادة التحميل</a>
+        </p>
+      </div>
+    </div>
+    <script>
+      window.setTimeout(() => {
+        const loader = document.getElementById('initial-page-loader');
+        if (loader?.isConnected && !loader.classList.contains('is-ready')) {
+          loader.classList.add('is-slow');
+        }
+      }, 12000);
+    </script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

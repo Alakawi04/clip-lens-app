@@ -1,17 +1,14 @@
 import React, { useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Lock, Loader2, AlertTriangle } from "lucide-react";
+import { Lock, Loader2 } from "lucide-react";
 import AuthSplit from "@/components/auth/AuthSplit";
 import { useI18n } from "@/lib/i18n";
 
 export default function ResetPassword() {
   const { t } = useI18n();
-  const [searchParams] = useSearchParams();
-  const resetToken = searchParams.get("token");
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -27,7 +24,8 @@ export default function ResetPassword() {
     }
     setLoading(true);
     try {
-      await base44.auth.resetPassword({ resetToken, newPassword });
+      const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
+      if (updateError) throw updateError;
       window.location.href = "/login";
     } catch (err) {
       setError(err.message || t("auth.error"));
@@ -35,25 +33,6 @@ export default function ResetPassword() {
       setLoading(false);
     }
   };
-
-  if (!resetToken) {
-    return (
-      <AuthSplit
-        icon={AlertTriangle}
-        title={t("auth.reset.invalid.title")}
-        subtitle={t("auth.reset.invalid.subtitle")}
-        footer={
-          <Link to="/forgot-password" className="text-primary font-medium hover:underline">
-            {t("auth.reset.newLink")}
-          </Link>
-        }
-      >
-        <p className="text-sm text-foreground text-center">
-          {t("auth.reset.invalid.body")}
-        </p>
-      </AuthSplit>
-    );
-  }
 
   return (
     <AuthSplit

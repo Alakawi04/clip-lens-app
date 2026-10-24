@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import { Activity, CheckCircle2, Gauge, Link2, Upload } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { backend } from '@/api/supabaseClient';
 import StatCard from '@/components/admin/StatCard';
 import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/lib/i18n';
@@ -18,9 +18,9 @@ export default function AdminOverview() {
     let active = true;
     (async () => {
       const [statusAgg, sourceAgg, recent] = await Promise.all([
-        base44.entities.Analysis.aggregate({ groupBy: 'status', avg: 'score' }),
-        base44.entities.Analysis.aggregate({ groupBy: 'source_type' }),
-        base44.entities.Analysis.filter(
+        backend.data.Analysis.aggregate({ groupBy: 'status', avg: 'score' }),
+        backend.data.Analysis.aggregate({ groupBy: 'source_type' }),
+        backend.data.Analysis.filter(
           {},
           { sort: '-created_date', limit: 8, fields: ['source_label', 'source_type', 'status', 'score', 'created_date'] }
         ),

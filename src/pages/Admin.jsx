@@ -18,18 +18,39 @@ export default function Admin() {
   const [draft, setDraft] = useState(settings);
   const [saving, setSaving] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   useEffect(() => { setDraft(settings); }, [settings]);
 
-  const set = (patch) => setDraft((d) => ({ ...d, ...patch }));
+  const set = (patch) => {
+    setDraft((draftValue) => ({ ...draftValue, ...patch }));
+    setSaveError('');
+  };
   const dirty = JSON.stringify(draft) !== JSON.stringify(settings);
 
   const onSave = async () => {
     setSaving(true);
-    await save(draft);
-    setSaving(false);
-    setJustSaved(true);
-    setTimeout(() => setJustSaved(false), 2200);
+    setSaveError('');
+    try {
+      await save(draft);
+      setJustSaved(true);
+      setTimeout(() => setJustSaved(false), 2200);
+    } catch (error) {
+      console.error('Failed to save site settings:', error);
+      const code = error?.code;
+      const message = `${error?.message || ''} ${error?.details || ''}`;
+      if (code === '23514' && /site_settings_particle_(count|size|style)_check/i.test(message)) {
+        setSaveError(t('admin.saveError.particleLimits'));
+      } else if (code === '42501' || Number(error?.status) === 401 || Number(error?.status) === 403) {
+        setSaveError(t('admin.saveError.permissions'));
+      } else if (code === '42703' || code === 'PGRST204') {
+        setSaveError(t('admin.saveError.migrations'));
+      } else {
+        setSaveError(`${t('admin.saveError')}${code ? ` (${code})` : ''}`);
+      }
+    } finally {
+      setSaving(false);
+    }
   };
 
   const tabs = [
@@ -57,6 +78,7 @@ export default function Admin() {
           {saving ? t('admin.saving') : justSaved ? t('admin.saved') : t('admin.save')}
         </Button>
       </motion.div>
+      {saveError && <p role="alert" className="mt-3 text-end text-sm text-destructive">{saveError}</p>}
 
       <div className="mt-7 inline-flex flex-wrap gap-1 rounded-2xl border border-border bg-card/60 p-1 backdrop-blur">
         {tabs.map((tb) => {

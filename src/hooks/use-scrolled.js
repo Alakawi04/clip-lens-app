@@ -25,5 +25,3 @@ export function useScrolled(threshold = 24) {
 
   return scrolled;
 }
-
-export default useScrolled;

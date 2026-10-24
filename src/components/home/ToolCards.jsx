@@ -1,14 +1,20 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { Upload, Youtube, ArrowRight } from 'lucide-react';
-import { Image } from '@/components/ui/image';
+import { Exploded, Plot } from '@lucasmarkes/hairline/react';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { useI18n } from '@/lib/i18n';
+import { useCredits } from '@/lib/CreditContext';
+import ScrollSection from './ScrollSection';
+import RevealCard from './RevealCard';
+import ScrollTypingText from './ScrollTypingText';
+import { useFinePointer } from '@/hooks/use-pointer-capability';
 
 export default function ToolCards() {
   const { t } = useI18n();
   const { settings } = useSiteSettings();
+  const { enabled } = useCredits();
+  const finePointer = useFinePointer();
   const cards = [
     {
       to: '/analyze',
@@ -16,7 +22,9 @@ export default function ToolCards() {
       title: t('tools.analyze.title'),
       desc: t('tools.analyze.desc'),
       cta: t('tools.analyze.cta'),
-      image: settings.tool_analyze_image_url,
+      kind: t('steps.1.visual.mp4'),
+      creditCost: settings.credits_upload_cost,
+      figure: Exploded,
     },
     {
       to: '/analyze?mode=review',
@@ -24,55 +32,53 @@ export default function ToolCards() {
       title: t('tools.review.title'),
       desc: t('tools.review.desc'),
       cta: t('tools.review.cta'),
-      image: settings.tool_review_image_url,
+      kind: t('steps.1.visual.youtube'),
+      creditCost: settings.credits_cost,
+      figure: Plot,
     },
   ];
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:flex lg:min-h-screen lg:flex-col lg:justify-center lg:snap-start lg:px-8">
-      <div className="mx-auto max-w-2xl text-center">
-        <h2 className="fly-3d font-display text-2xl font-bold tracking-tight sm:text-3xl">{t('tools.title')}</h2>
-        <p className="mt-2 text-muted-foreground">{t('tools.subtitle')}</p>
-      </div>
-      <div className="mt-8 grid gap-5 sm:grid-cols-2">
+    <ScrollSection className="tools-showcase mx-auto max-w-[1440px] px-4 py-16 sm:px-8 sm:py-24 lg:px-12">
+      <header className="tools-showcase-heading home-section-heading home-section-heading--tools">
+        <ScrollTypingText as="h2" text={t('tools.title')} />
+        <ScrollTypingText as="p" text={t('tools.subtitle')} delay={100} />
+      </header>
+      <div className="tools-route-grid">
         {cards.map((c, i) => {
           const Icon = c.icon;
+          const Figure = c.figure;
           return (
-            <motion.div
+            <RevealCard
               key={c.to}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: '-60px' }}
-              transition={{ duration: 0.5, delay: i * 0.08 }}
+              delay={i * 0.1}
+              variant={i === 0 ? 'glideStart' : 'settle'}
+              className={`tools-route-wrap tools-route-wrap-${i + 1}`}
             >
               <Link
                 to={c.to}
-                className="group relative flex h-full flex-col overflow-hidden rounded-3xl border border-border bg-card shadow-soft transition-all duration-500 hover:-translate-y-1.5 hover:border-primary/40 hover:shadow-float focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className={`tools-pathway group tools-pathway-${i + 1} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring`}
               >
-                <div className="relative aspect-[16/9] overflow-hidden">
-                  <Image
-                    src={c.image}
-                    alt=""
-                    className="h-full w-full object-cover transition-transform duration-500 sm:group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
-                  <span className="absolute start-4 top-4 grid h-12 w-12 place-items-center rounded-2xl bg-white/90 text-primary shadow-float backdrop-blur">
-                    <Icon className="h-6 w-6" />
-                  </span>
+                <div className="tools-pathway-topline">
+                  <span className="tools-pathway-icon"><Icon aria-hidden="true" /></span>
+                  <div className="tools-pathway-meta">
+                    <span className="tools-pathway-kind"><b>0{i + 1}</b>{c.kind}</span>
+                    {enabled && <span className="tools-pathway-cost">{c.creditCost} {Number(c.creditCost) === 1 ? t('pricing.credit') : t('pricing.credits')}</span>}
+                  </div>
                 </div>
-                <div className="flex flex-1 flex-col p-6 sm:p-7">
-                  <h3 className="font-display text-xl font-bold">{c.title}</h3>
-                  <p className="mt-2 flex-1 text-sm text-muted-foreground">{c.desc}</p>
-                  <span className="mt-5 inline-flex items-center gap-1.5 text-sm font-semibold text-primary">
-                    {c.cta}
-                    <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rtl:rotate-180 rtl:group-hover:-translate-x-1" />
-                  </span>
+                {finePointer && <div className={`tools-pathway-figure tools-pathway-figure-${i + 1}`} aria-hidden="true">
+                  <Figure intensity={0.38} theme="auto" />
+                </div>}
+                <div className="tools-pathway-copy">
+                  <ScrollTypingText as="h3" text={c.title} delay={40} />
+                  <ScrollTypingText as="p" text={c.desc} delay={100} />
                 </div>
+                <span className="tools-pathway-action"><b>{c.cta}</b><i><ArrowRight className="h-4 w-4 rtl:rotate-180" /></i></span>
               </Link>
-            </motion.div>
+            </RevealCard>
           );
         })}
       </div>
-    </section>
+    </ScrollSection>
   );
 }

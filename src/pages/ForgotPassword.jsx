@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { base44 } from "@/api/base44Client";
+import { supabase } from "@/api/supabaseClient";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,17 +13,21 @@ export default function ForgotPassword() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await base44.auth.resetPasswordRequest(email);
-    } catch {
-      // Always show success regardless
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      if (resetError) throw resetError;
+      setSent(true);
+    } catch (resetError) {
+      setError(resetError.message || t("auth.error"));
     } finally {
       setLoading(false);
-      setSent(true);
     }
   };
 
@@ -42,6 +46,8 @@ export default function ForgotPassword() {
       {sent ? (
         <p className="text-sm text-foreground text-center">{t("auth.forgot.sent")}</p>
       ) : (
+        <>
+        {error && <div className="mb-4 rounded-lg bg-destructive/10 p-3 text-sm text-destructive" role="alert">{error}</div>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-foreground">{t("auth.forgot.email")}</Label>
@@ -71,6 +77,7 @@ export default function ForgotPassword() {
             )}
           </Button>
         </form>
+        </>
       )}
     </AuthSplit>
   );

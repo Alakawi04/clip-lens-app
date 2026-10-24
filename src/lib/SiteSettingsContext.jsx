@@ -1,38 +1,55 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { backend, isSupabaseConfigured } from '@/api/supabaseClient';
+import { applySiteFonts } from '@/lib/siteFonts';
+
+const LEGACY_DEFAULT_LOGOS = new Set([
+  'https://6ad73690824d5e0dba9e87a3.imgix.net/cliplens_logo_icon_clean_large-removebg-preview.png',
+  '/cliplens-logo.png',
+  '/cliplens-logo.svg',
+]);
 
 // Defaults used when the admin has not overridden a value yet.
-export const SITE_DEFAULTS = {
+const SITE_DEFAULTS = {
   brand_name: 'ClipLens',
-  logo_image_url: '',
+  logo_image_url: '/cliplens-logo.png',
   accent_color: '#FF0000',
-  hero_image_url: 'https://images.unsplash.com/photo-1493612276216-ee392551f8a4?auto=format&fit=crop&w=900&q=80',
-  tool_analyze_image_url: 'https://images.unsplash.com/photo-1492619375914-88005aa9e8fb?auto=format&fit=crop&w=900&q=80',
-  tool_review_image_url: 'https://images.unsplash.com/photo-1536240478700-b869070f9279?auto=format&fit=crop&w=900&q=80',
-  before_image_url: 'https://images.unsplash.com/photo-1493612276216-ee392551f8a4?auto=format&fit=crop&w=900&q=70',
-  after_image_url: 'https://images.unsplash.com/photo-1598899134739-24c46f8b8f23?auto=format&fit=crop&w=900&q=80',
+  particles_style: 'neural',
+  particle_count: 120,
+  particle_size: 1.55,
+  hero_image_url: 'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/Edit_thumbnail_text_and_elements_2K_20261018001924.jpg',
+  hero_images: [
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/Edit_thumbnail_text_and_elements_2K_20261018001924.jpg',
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/clip_lens_style_01_cinematic.png',
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/clip_lens_style_03_tech.png',
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/clip_lens_style_10_digital.png',
+  ],
+  tool_analyze_image_url: 'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/AI_video_analysis_website_icon_2K_20261018003923.jpg',
+  tool_review_image_url: 'https://6ad73690824d5e0dba9e87a3.imgix.net/Change_color_theme_2K_20261018004212.jpg',
+  before_image_url: 'https://6ad73690824d5e0dba9e87a3.imgix.net/Creating_silhouette_thumbnail_image_2K_20261018003546.jpg',
+  after_image_url: 'https://6ad73690824d5e0dba9e87a3.imgix.net/clip_lens_content_03_trending_text.png',
   gallery_images: [
-    'https://images.unsplash.com/photo-1598899134739-24c46f8b8f23?auto=format&fit=crop&w=1280&q=80',
-    'https://images.unsplash.com/photo-1492619375914-88005aa9e8fb?auto=format&fit=crop&w=1280&q=80',
-    'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?auto=format&fit=crop&w=1280&q=80',
-    'https://images.unsplash.com/photo-1536240478700-b869070f9279?auto=format&fit=crop&w=1280&q=80',
-    'https://images.unsplash.com/photo-1596704017254-930121d89203?auto=format&fit=crop&w=1280&q=80',
-    'https://images.unsplash.com/photo-1493612276216-ee392551f8a4?auto=format&fit=crop&w=1280&q=80',
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/Edit_thumbnail_text_and_elements_2K_20261018001924.jpg',
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/clip_lens_style_01_cinematic.png',
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/clip_lens_style_10_digital.png',
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/sandbox/clip_lens_style_03_tech.png',
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/clip_lens_style_07_comic.png',
+    'https://6ad73690824d5e0dba9e87a3.imgix.net/Creating_YouTube_thumbnails_2K_20261018002234.jpg',
   ],
   // Admin text overrides, keyed "<lang>.<i18n key>".
   texts: {},
-  // Credit & subscription system (admin-controlled, off by default).
-  credits_enabled: false,
+  // Credit & subscription defaults.
+  credits_enabled: true,
   credits_cost: 1,
+  credits_upload_cost: 2,
   credits_signup: 3,
-  credits_pro_price: 12,
+  credits_pro_price: 20,
   credits_pro_amount: 200,
 };
 
 const SiteSettingsContext = createContext(null);
 
 // "#FF0000" -> "0 100% 50%" (the channel format our CSS tokens expect).
-export function hexToHslChannels(hex) {
+function hexToHslChannels(hex) {
   if (!hex) return null;
   let h = String(hex).replace('#', '').trim();
   if (h.length === 3) h = h.split('').map((c) => c + c).join('');
@@ -67,12 +84,21 @@ export function applyAccentColor(hex) {
   });
 }
 
+export function saveSiteThemePreference(theme) {
+  if (theme !== 'dark' && theme !== 'light') return;
+  try { window.localStorage.setItem('clip-lens-site-theme', theme); } catch { /* Storage may be disabled. */ }
+  if (typeof document !== 'undefined') document.documentElement.dataset.siteTheme = theme;
+}
+
 // Record values win; empty/blank values fall back to the defaults.
 function mergeWithDefaults(record) {
   const out = { ...SITE_DEFAULTS };
   if (!record) return out;
   Object.keys(SITE_DEFAULTS).forEach((key) => {
-    const value = record[key];
+    const savedValue = record[key];
+    const value = key === 'logo_image_url' && LEGACY_DEFAULT_LOGOS.has(savedValue)
+      ? SITE_DEFAULTS.logo_image_url
+      : savedValue;
     const filled = Array.isArray(value) ? value.length > 0 : value !== undefined && value !== null && value !== '';
     if (filled) out[key] = value;
   });
@@ -85,12 +111,18 @@ export function SiteSettingsProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
+    if (!isSupabaseConfigured) {
+      setSettings(SITE_DEFAULTS);
+      setLoading(false);
+      return;
+    }
     try {
-      const page = await base44.entities.SiteSettings.filter({}, { sort: '-updated_date', limit: 1 });
+      const page = await backend.data.SiteSettings.filter({}, { sort: '-updated_date', limit: 1 });
       const record = page.items?.[0] || null;
       setRecordId(record?.id || null);
       setSettings(mergeWithDefaults(record));
-    } catch {
+    } catch (error) {
+      console.error('Failed to load site settings:', error);
       setSettings(SITE_DEFAULTS);
     } finally {
       setLoading(false);
@@ -100,12 +132,14 @@ export function SiteSettingsProvider({ children }) {
   useEffect(() => { load(); }, [load]);
 
   useEffect(() => { applyAccentColor(settings.accent_color); }, [settings.accent_color]);
+  useEffect(() => { applySiteFonts(settings.texts?.__appearance); }, [settings.texts]);
 
   const save = useCallback(async (patch) => {
     if (recordId) {
-      await base44.entities.SiteSettings.update(recordId, patch);
+      await backend.data.SiteSettings.update(recordId, patch);
     } else {
-      const created = await base44.entities.SiteSettings.create({ ...SITE_DEFAULTS, ...patch });
+      const created = await backend.data.SiteSettings.create({ ...SITE_DEFAULTS, ...patch });
+      if (!created) throw new Error('Site settings were saved but no record was returned.');
       setRecordId(created.id);
     }
     await load();

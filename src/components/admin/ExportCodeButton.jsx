@@ -9,7 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { useI18n } from '@/lib/i18n';
 
-const COMMANDS = 'npm install -g base44@latest\nbase44 eject\ncd my-app\nnpm install\nbase44 dev';
+const COMMANDS = 'npm install\nnpm run dev';
 
 // Small, quiet button at the bottom of the admin dashboard — opens a short
 // guide for downloading the full site code as a ZIP and running it locally.

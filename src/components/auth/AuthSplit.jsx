@@ -9,7 +9,7 @@ import { useI18n } from '@/lib/i18n';
 // Side panel for the split auth screens: a product-flavored mockup.
 // Purely illustrative — the "Demo" badge keeps it from reading as real
 // user results. No sample titles or user-like data.
-export function AuthDemoPanel() {
+function AuthDemoPanel() {
   const { t } = useI18n();
 
   return (

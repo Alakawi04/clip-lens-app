@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Upload, Loader2 } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { uploadPublicFile } from '@/api/supabaseClient';
 import { Image } from '@/components/ui/image';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,10 +17,15 @@ export default function ImageField({ label, value, onChange, aspect = 'aspect-vi
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
-    const { file_url } = await base44.integrations.Core.UploadPublicFile({ file });
-    onChange(file_url);
-    setUploading(false);
-    e.target.value = '';
+    try {
+      const { file_url } = await uploadPublicFile({ file });
+      onChange(file_url);
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+    } finally {
+      setUploading(false);
+      e.target.value = '';
+    }
   };
 
   return (

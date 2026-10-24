@@ -2,9 +2,10 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Trash2, ArrowRight, Clock, History as HistoryIcon, Sparkles, Search, X } from 'lucide-react';
-import { base44 } from '@/api/base44Client';
+import { backend } from '@/api/supabaseClient';
 import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/lib/i18n';
+import { deleteAnalysisFrames } from '@/lib/videoFrames';
 
 const FIELDS = ['source_type', 'source_label', 'status', 'score', 'thumbnail_url', 'created_date'];
 
@@ -20,7 +21,7 @@ export default function History() {
   const load = useCallback(async (term) => {
     try {
       const query = term ? { source_label: { $regex: term, $options: 'i' } } : {};
-      const page = await base44.entities.Analysis.filter(query, { sort: '-created_date', limit: 50, fields: FIELDS });
+      const page = await backend.data.Analysis.filter(query, { sort: '-created_date', limit: 50, fields: FIELDS });
       setItems(page.items || []);
     } catch {
       setItems([]);
@@ -33,7 +34,8 @@ export default function History() {
   }, [search, load]);
 
   const remove = async (id) => {
-    try { await base44.entities.Analysis.delete(id); } catch { /* ignore */ }
+    try { await deleteAnalysisFrames(id); } catch { /* local cleanup is best-effort */ }
+    try { await backend.data.Analysis.delete(id); } catch { /* ignore */ }
     setConfirmId(null);
     setItems((prev) => (prev || []).filter((x) => x.id !== id));
   };
