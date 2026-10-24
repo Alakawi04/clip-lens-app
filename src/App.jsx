@@ -119,7 +119,7 @@ export default function App() {
             <AuthProvider>
               <CreditProvider>
                 <QueryClientProvider client={queryClientInstance}>
-                  <BrowserRouter>
+                  <BrowserRouter basename={import.meta.env.BASE_URL}>
                     <LocalFrameCleanup />
                     <ScrollToTop />
                     <ScrollProgress />
