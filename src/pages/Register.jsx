@@ -9,6 +9,7 @@ import AuthExperienceShell from "@/components/auth/AuthExperienceShell";
 import GoogleIcon from "@/components/GoogleIcon";
 import { toast } from "@/components/ui/use-toast";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { appUrl } from "@/lib/appPaths";
 import { useI18n } from "@/lib/i18n";
 
 export default function Register() {
@@ -35,11 +36,11 @@ export default function Register() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: { emailRedirectTo: `${window.location.origin}${returnTo}` },
+        options: { emailRedirectTo: `${window.location.origin}${appUrl(returnTo)}` },
       });
       if (signUpError) throw signUpError;
       if (data.session) {
-        window.location.href = returnTo;
+        window.location.href = appUrl(returnTo);
         return;
       }
       setShowOtp(true);
@@ -56,7 +57,7 @@ export default function Register() {
     try {
       const { error: verifyError } = await supabase.auth.verifyOtp({ email, token: otpCode, type: "signup" });
       if (verifyError) throw verifyError;
-      window.location.href = returnTo;
+      window.location.href = appUrl(returnTo);
     } catch (authError) {
       setError(authError.message || t("auth.error"));
     } finally {
@@ -85,7 +86,7 @@ export default function Register() {
       setRememberSession(true);
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}${returnTo}` },
+        options: { redirectTo: `${window.location.origin}${appUrl(returnTo)}` },
       });
       if (signInError) throw signInError;
     } catch (authError) {

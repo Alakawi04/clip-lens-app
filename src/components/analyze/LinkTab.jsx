@@ -1,6 +1,7 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Link2, Sparkles, Eye, BarChart3, Coins, ImagePlus, X, ChevronDown, Loader2 } from 'lucide-react';
+import { Link2, Sparkles, Eye, BarChart3, Coins, ImagePlus, X, ChevronDown, Loader2, Youtube } from 'lucide-react';
 import { useI18n } from '@/lib/i18n';
 import { prepareReferenceFrames } from '@/lib/videoFrames';
 
@@ -115,8 +116,26 @@ function StudioField({ label, placeholder, value, onChange, error, duration }) {
   );
 }
 
-export default function LinkTab({ onStart, creditCost, disabled, submitError }) {
-  const { t, lang } = useI18n();
+function formatDuration(seconds) {
+  if (seconds == null || seconds === '') return '';
+  if (seconds === 'NA') return 'NA';
+  const value = Number(seconds);
+  if (!Number.isFinite(value) || value < 0) return '';
+  const total = Math.round(value);
+  const hours = Math.floor(total / 3600);
+  const minutes = Math.floor((total % 3600) / 60);
+  const remainder = total % 60;
+  return hours
+    ? `${hours}:${String(minutes).padStart(2, '0')}:${String(remainder).padStart(2, '0')}`
+    : `${minutes}:${String(remainder).padStart(2, '0')}`;
+}
+
+function fieldValue(value) {
+  return value == null ? '' : String(value);
+}
+
+export default function LinkTab({ onStart, initialUrl = '', initialStats = null, creditCost, disabled, submitError }) {
+  const { t } = useI18n();
   const referenceInputRef = useRef(null);
   const studioDetailsRef = useRef(null);
   const extraDetailsRef = useRef(null);
@@ -124,13 +143,40 @@ export default function LinkTab({ onStart, creditCost, disabled, submitError }) 
   const [urlError, setUrlError] = useState('');
   const [touched, setTouched] = useState(false);
   const [studio, setStudio] = useState({ impressions: '', ctr: '', views: '', avgView: '', duration: '' });
-  const [videoLanguage, setVideoLanguage] = useState(lang);
+  const [videoLanguage, setVideoLanguage] = useState('auto');
   const [videoContext, setVideoContext] = useState('');
-  const [spokenContent, setSpokenContent] = useState('');
+  const [creatorProblem, setCreatorProblem] = useState('');
   const [extra, setExtra] = useState(Object.fromEntries(EXTRA_FIELDS.map(({ k, multiple }) => [k, multiple ? [] : ''])));
   const [invalidFields, setInvalidFields] = useState([]);
   const [referenceFrames, setReferenceFrames] = useState([]);
   const [referenceError, setReferenceError] = useState('');
+
+  useEffect(() => {
+    if (initialUrl) setUrl(initialUrl);
+  }, [initialUrl]);
+
+  useEffect(() => {
+    if (!initialStats) return;
+    setStudio({
+      impressions: fieldValue(initialStats.impressions),
+      ctr: fieldValue(initialStats.ctr),
+      views: fieldValue(initialStats.views),
+      avgView: formatDuration(initialStats.avg_view_duration),
+      duration: formatDuration(initialStats.video_duration),
+    });
+    setVideoLanguage(initialStats.video_language_mode === 'selected' ? initialStats.video_language || 'auto' : 'auto');
+    setVideoContext(initialStats.video_context || '');
+    setCreatorProblem(initialStats.creator_problem || '');
+    setExtra({
+      traffic_sources: Array.isArray(initialStats.traffic_sources) ? initialStats.traffic_sources : [],
+      video_age_days: fieldValue(initialStats.video_age_days),
+      content_type: fieldValue(initialStats.content_type),
+      target_audience: fieldValue(initialStats.target_audience),
+      retention_percentage: fieldValue(initialStats.retention_percentage),
+      previous_views: fieldValue(initialStats.previous_views),
+      previous_ctr: fieldValue(initialStats.previous_ctr),
+    });
+  }, [initialStats]);
 
   const handleReferenceFiles = async (event) => {
     const files = Array.from(event.target.files || []);
@@ -214,9 +260,10 @@ export default function LinkTab({ onStart, creditCost, disabled, submitError }) 
       sourceUrl: url.trim(),
       referenceFrames,
       videoContext: videoContext.trim().slice(0, 3000),
-      spokenContent: spokenContent.trim().slice(0, 8000),
+      creatorProblem: creatorProblem.trim().slice(0, 3000),
       studioStats: {
         video_language: videoLanguage,
+        video_language_mode: videoLanguage === 'auto' ? 'auto' : 'selected',
         impressions: parseNum(studio.impressions, 'impressions'),
         ctr: parseNum(studio.ctr, 'ctr'),
         views: parseNum(studio.views, 'views'),
@@ -235,21 +282,15 @@ export default function LinkTab({ onStart, creditCost, disabled, submitError }) 
 
   return (
     <div>
-      <div className="rounded-3xl border border-border bg-card/40 p-6 shadow-soft sm:p-8">
-        <div className="flex items-center gap-3">
-          <span className="grid h-12 w-12 place-items-center rounded-2xl bg-secondary text-primary">
-            <Link2 className="h-6 w-6" />
-          </span>
-          <div>
-            <p className="font-display text-lg font-bold">{t('add.link.title')}</p>
-          </div>
-        </div>
+      <div className="tool-review-form-card rounded-[2rem] border border-border bg-card/40 p-5 shadow-soft sm:p-7">
+        <p className="tool-form-chip"><Link2 className="h-3.5 w-3.5" />{t('add.link.title')}</p>
 
         <div className="mt-5">
-          <label htmlFor="yt-url" className="sr-only">{t('add.link.title')}</label>
-          <div className={`flex items-center gap-2 rounded-2xl border bg-card px-3.5 py-1 transition-all ${
+          <label htmlFor="yt-url" className="mb-1.5 block text-xs font-semibold text-muted-foreground">{t('tools.form.youtubeUrl')}</label>
+          <div className={`tool-review-source flex min-h-[3.5rem] w-full items-center gap-3 rounded-2xl border bg-background/60 px-4 transition-all ${
             touched && !valid ? 'border-red-500/60 ring-1 ring-red-500/30' : 'border-border focus-within:border-primary focus-within:ring-2 focus-within:ring-ring/40'
           }`}>
+            <Youtube className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
             <input
               id="yt-url"
               type="url"
@@ -259,7 +300,7 @@ export default function LinkTab({ onStart, creditCost, disabled, submitError }) 
               onChange={(e) => { const nextUrl = e.target.value; setUrl(nextUrl); if (touched) setUrlError(isValidYouTubeUrl(nextUrl.trim()) ? '' : t('add.link.invalid')); }}
               onKeyDown={(e) => e.key === 'Enter' && submit()}
               placeholder={t('add.link.placeholder')}
-              className="w-full bg-transparent py-2.5 text-sm outline-none placeholder:text-muted-foreground/60"
+              className="h-12 min-w-0 w-full flex-1 bg-transparent text-sm leading-normal outline-none placeholder:text-muted-foreground/55"
             />
           </div>
           <AnimatePresence>
@@ -295,6 +336,7 @@ export default function LinkTab({ onStart, creditCost, disabled, submitError }) 
               }`}
             >
               <option value="">{t('add.link.videoLanguage.select')}</option>
+              <option value="auto">{t('add.link.videoLanguage.auto')}</option>
               {['ar', 'en', 'es', 'fr', 'de', 'pt', 'tr', 'hi', 'id', 'ja', 'ko'].map((code) => (
                 <option key={code} value={code}>{t(`add.link.videoLanguage.${code}`)}</option>
               ))}
@@ -302,7 +344,7 @@ export default function LinkTab({ onStart, creditCost, disabled, submitError }) 
             {invalidFields.includes('video_language') && <p id="video-language-error" className="mt-1 text-xs font-medium text-red-600 dark:text-red-400">{t('add.link.videoLanguage.required')}</p>}
         </div>
 
-        <details className="group mt-4 rounded-2xl border border-border bg-card/60 p-4">
+        <details className="tool-review-details group mt-4 rounded-2xl border border-border bg-card/60 p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
             <span className="flex min-w-0 items-center gap-2"><ImagePlus className="h-4 w-4 shrink-0 text-primary" /><span className="truncate">{t('add.link.reference.title')}</span><span className="shrink-0 text-xs font-normal text-muted-foreground">{referenceFrames.length ? `${referenceFrames.length} ${t('add.link.reference.ready')}` : t('add.link.optional')}</span></span>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
@@ -330,20 +372,19 @@ export default function LinkTab({ onStart, creditCost, disabled, submitError }) 
           </div>
         </details>
 
-        <details ref={studioDetailsRef} className="group mt-3 rounded-2xl border border-border bg-card/60 p-4">
+        <details ref={studioDetailsRef} className="tool-review-details tool-review-details--metrics group mt-3 rounded-2xl border border-border bg-card/60 p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
             <span className="flex items-center gap-2"><BarChart3 className="h-4 w-4 text-primary" />{t('add.link.studio.title')} <span className="text-xs font-normal text-muted-foreground">{t('add.link.optional')}</span></span>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
           </summary>
           <p className="mt-3 text-xs leading-relaxed text-muted-foreground">{t('add.link.studio.desc')}</p>
-          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t('add.link.studio.autoMetadata')}</p>
           <div className="mt-3 grid grid-cols-2 gap-3">
             {FIELDS.map((f) => <StudioField key={f.k} label={t(f.labelKey)} placeholder={f.ph} value={studio[f.k]} onChange={setField(f.k)} error={invalidFields.includes(f.k)} duration={f.duration} />)}
           </div>
           {invalidFields.some((field) => FIELDS.some((item) => item.k === field)) && <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-400">{t('add.link.studio.invalid')}</p>}
         </details>
 
-        <details ref={extraDetailsRef} className="group mt-3 rounded-2xl border border-border bg-card/60 p-4">
+        <details ref={extraDetailsRef} className="tool-review-details tool-review-details--context group mt-3 rounded-2xl border border-border bg-card/60 p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold [&::-webkit-details-marker]:hidden">
             <span>{t('add.link.extra.title')} <span className="text-xs font-normal text-muted-foreground">{t('add.link.optional')}</span></span>
             <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-180" />
@@ -352,10 +393,10 @@ export default function LinkTab({ onStart, creditCost, disabled, submitError }) 
           <label htmlFor="youtube-video-context" className="mt-3 block text-xs font-medium text-muted-foreground">{t('add.link.context.label')}</label>
           <textarea id="youtube-video-context" value={videoContext} onChange={(event) => setVideoContext(event.target.value.slice(0, 3000))} maxLength={3000} rows={3} dir="auto" placeholder={t('add.link.context.placeholder')} className="mt-1 w-full resize-y rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-ring/40" />
           <p className="mt-1 text-end text-[11px] text-muted-foreground">{videoContext.length}/3000</p>
-          <label htmlFor="youtube-spoken-content" className="mt-3 block text-xs font-medium text-muted-foreground">{t('add.link.transcript.title')}</label>
-          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t('add.link.transcript.help')}</p>
-          <textarea id="youtube-spoken-content" value={spokenContent} onChange={(event) => setSpokenContent(event.target.value.slice(0, 8000))} maxLength={8000} rows={4} dir="auto" placeholder={t('add.link.transcript.placeholder')} className="mt-1 w-full resize-y rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-ring/40" />
-          <p className="mt-1 text-end text-[11px] text-muted-foreground">{spokenContent.length}/8000</p>
+          <label htmlFor="creator-problem" className="mt-4 block text-xs font-semibold text-foreground">{t('add.link.problem.title')}</label>
+          <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{t('add.link.problem.help')}</p>
+          <textarea id="creator-problem" value={creatorProblem} onChange={(event) => setCreatorProblem(event.target.value.slice(0, 3000))} maxLength={3000} rows={4} dir="auto" placeholder={t('add.link.problem.placeholder')} className="mt-1 w-full resize-y rounded-xl border border-border bg-card px-3 py-2 text-sm outline-none transition-colors placeholder:text-muted-foreground/50 focus:border-primary focus:ring-2 focus:ring-ring/40" />
+          <p className="mt-1 text-end text-[11px] text-muted-foreground">{creatorProblem.length}/3000</p>
           <div className="mt-3 grid gap-3 sm:grid-cols-2">
             {EXTRA_FIELDS.map((field) => (
               <div key={field.k} className={field.multiple ? 'sm:col-span-2' : ''}>
@@ -435,13 +476,10 @@ export default function LinkTab({ onStart, creditCost, disabled, submitError }) 
         {submitError && <p role="alert" className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">{t('analyze.submitError')}</p>}
       </div>
 
-      <div className="mt-5 flex gap-3 rounded-2xl border border-border bg-secondary/40 p-4">
-        <Eye className="h-5 w-5 shrink-0 text-primary" />
-        <div>
-          <p className="text-sm font-semibold">{t('add.link.privacyTitle')}</p>
-          <p className="mt-1 text-xs text-muted-foreground">{t('add.link.privacy')}</p>
-        </div>
-      </div>
+      <p className="mt-5 flex flex-wrap items-center gap-1.5 text-[11px] leading-relaxed text-muted-foreground">
+        <Eye className="h-3.5 w-3.5 shrink-0 text-primary" />{t('add.link.privacy')}
+        <Link to="/privacy" className="font-semibold text-primary underline-offset-4 hover:underline">{t('add.link.privacyLink')}</Link>
+      </p>
     </div>
   );
 }

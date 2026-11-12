@@ -43,9 +43,15 @@ export function CreditProvider({ children }) {
     return res?.data;
   }, [load]);
 
+  const spendTool = useCallback(async (analysisId, tool, requestId) => {
+    const res = await invokeFunction('consumeToolCredit', { analysisId, tool, requestId });
+    await load();
+    return res?.data;
+  }, [load]);
+
   const value = useMemo(
-    () => ({ enabled, account, balance: account?.balance ?? 0, plan: account?.plan || 'free', load, spend }),
-    [enabled, account, load, spend]
+    () => ({ enabled, account, balance: account?.balance ?? 0, plan: account?.plan || 'free', load, spend, spendTool }),
+    [enabled, account, load, spend, spendTool]
   );
 
   return <CreditContext.Provider value={value}>{children}</CreditContext.Provider>;

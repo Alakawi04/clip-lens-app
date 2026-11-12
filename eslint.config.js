@@ -45,6 +45,9 @@ export default [
       ],
       "react/prop-types": "off",
       "react/react-in-jsx-scope": "off",
+      // no-undef does not inspect JSX identifiers; this catches a component or
+      // icon that is used in JSX but never imported.
+      "react/jsx-no-undef": "error",
       "react/no-unknown-property": [
         "error",
         { ignore: ["toast-close"] },

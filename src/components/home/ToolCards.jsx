@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Upload, Youtube, ArrowRight } from 'lucide-react';
+import { BarChart3, Type, Image as ImageIcon, ArrowRight } from 'lucide-react';
 import { Exploded, Plot } from '@lucasmarkes/hairline/react';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { useI18n } from '@/lib/i18n';
@@ -17,24 +17,34 @@ export default function ToolCards() {
   const finePointer = useFinePointer();
   const cards = [
     {
-      to: '/analyze',
-      icon: Upload,
-      title: t('tools.analyze.title'),
-      desc: t('tools.analyze.desc'),
-      cta: t('tools.analyze.cta'),
-      kind: t('steps.1.visual.mp4'),
-      creditCost: settings.credits_upload_cost,
-      figure: Exploded,
-    },
-    {
-      to: '/analyze?mode=review',
-      icon: Youtube,
+      to: '/analyze/review',
+      icon: BarChart3,
       title: t('tools.review.title'),
       desc: t('tools.review.desc'),
       cta: t('tools.review.cta'),
-      kind: t('steps.1.visual.youtube'),
-      creditCost: settings.credits_cost,
+      kind: t('tools.nav.review'),
+      creditCost: settings.credits_review_cost,
+      figure: Exploded,
+    },
+    {
+      to: '/analyze/titles',
+      icon: Type,
+      title: t('tools.titles.title'),
+      desc: t('tools.titles.desc'),
+      cta: t('tools.titles.submit'),
+      kind: t('tools.nav.titles'),
+      creditCost: settings.credits_titles_cost,
       figure: Plot,
+    },
+    {
+      to: '/analyze/thumbnail',
+      icon: ImageIcon,
+      title: t('tools.thumbnail.title'),
+      desc: t('tools.thumbnail.desc'),
+      cta: t('tools.thumbnail.submit'),
+      kind: t('tools.nav.thumbnail'),
+      creditCost: settings.credits_thumbnail_cost,
+      figure: Exploded,
     },
   ];
 

@@ -42,6 +42,9 @@ type DataRow = {
   credits_enabled?: boolean;
   credits_cost?: number;
   credits_upload_cost?: number;
+  credits_review_cost?: number;
+  credits_titles_cost?: number;
+  credits_thumbnail_cost?: number;
   credits_signup?: number;
   credits_pro_price?: number;
   credits_pro_amount?: number;
@@ -73,6 +76,18 @@ type Database = {
     Functions: {
       consume_credit: {
         Args: { p_analysis_id: string; p_claim_api?: boolean };
+        Returns: Json;
+      };
+      consume_tool_credit: {
+        Args: { p_analysis_id: string; p_tool: 'review' | 'titles' | 'thumbnail'; p_request_id: string };
+        Returns: Json;
+      };
+      refund_tool_credit: {
+        Args: { p_analysis_id: string; p_request_id: string };
+        Returns: Json;
+      };
+      admin_analysis_overview: {
+        Args: Record<string, never>;
         Returns: Json;
       };
     };
@@ -135,7 +150,8 @@ function entity(name: keyof typeof TABLES) {
       filters: Record<string, Json> = {},
       options: { fields?: string[]; sort?: string; limit?: number } = {}
     ) {
-      let query = supabase.from(table).select('*');
+      const selectedFields = options.fields?.length ? options.fields.join(',') : '*';
+      let query = supabase.from(table).select(selectedFields);
       for (const [key, value] of Object.entries(filters)) {
         if (value && typeof value === 'object' && '$regex' in value) {
           query = query.ilike(key, `%${String(value.$regex).replace(/[%_]/g, '\\$&')}%`);
@@ -227,6 +243,23 @@ export async function invokeFunction(name, body, options: { signal?: AbortSignal
     const { data, error } = await supabase.rpc('consume_credit', {
       p_analysis_id: body.analysisId,
       p_claim_api: body.claimApi === true,
+    });
+    throwIfError(error);
+    return { data };
+  }
+  if (name === 'consumeToolCredit') {
+    const { data, error } = await supabase.rpc('consume_tool_credit', {
+      p_analysis_id: body.analysisId,
+      p_tool: body.tool,
+      p_request_id: body.requestId,
+    });
+    throwIfError(error);
+    return { data };
+  }
+  if (name === 'refundToolCredit') {
+    const { data, error } = await supabase.rpc('refund_tool_credit', {
+      p_analysis_id: body.analysisId,
+      p_request_id: body.requestId,
     });
     throwIfError(error);
     return { data };

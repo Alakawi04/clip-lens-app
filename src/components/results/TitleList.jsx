@@ -28,12 +28,12 @@ export default function TitleList({ titles }) {
     >
       <div className="flex items-start gap-3 pe-9">
         {primary && <Star className="mt-1 h-4 w-4 shrink-0 fill-primary text-primary" />}
-        <p className="font-display text-sm font-bold leading-relaxed sm:text-base">{item.title}</p>
+        <p dir="auto" className="font-display text-sm font-bold leading-relaxed sm:text-base">{item.title}</p>
       </div>
       {item.reason && (
         <details className="mt-2 text-xs text-muted-foreground">
           <summary className="w-fit cursor-pointer list-none font-medium hover:text-foreground">{t('results.why')}</summary>
-          <p className="mt-1.5 leading-relaxed">{item.reason}</p>
+          <p dir="auto" className="mt-1.5 leading-relaxed">{item.reason}</p>
         </details>
       )}
       <button

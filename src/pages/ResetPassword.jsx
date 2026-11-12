@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Lock, Loader2 } from "lucide-react";
 import AuthSplit from "@/components/auth/AuthSplit";
 import { useI18n } from "@/lib/i18n";
+import { appUrl } from "@/lib/appPaths";
 
 export default function ResetPassword() {
   const { t } = useI18n();
@@ -26,7 +27,7 @@ export default function ResetPassword() {
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password: newPassword });
       if (updateError) throw updateError;
-      window.location.href = "/login";
+      window.location.href = appUrl("/login");
     } catch (err) {
       setError(err.message || t("auth.error"));
     } finally {

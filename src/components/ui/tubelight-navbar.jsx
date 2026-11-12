@@ -67,7 +67,14 @@ export function NavBar({
         )}
         {items.map((item) => {
           const Icon = item.icon;
-          const isActive = current === item.to || (item.to === '/' && location.pathname === '/');
+          const isToolLink = item.to.startsWith('/analyze/');
+          const legacyTool = location.pathname === '/analyze'
+            ? new URLSearchParams(location.search).get('tool') || 'review'
+            : null;
+          const legacyItemTool = isToolLink ? item.to.split('/').at(-1) : null;
+          const isActive = (isToolLink && (location.pathname === item.to || legacyTool === legacyItemTool))
+            || (!isToolLink && current === item.to)
+            || (item.to === '/' && location.pathname === '/');
 
           return (
             <Link

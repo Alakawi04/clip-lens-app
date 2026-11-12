@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { isSupabaseConfigured, supabase } from '@/api/supabaseClient';
+import { appUrl, stripBase } from '@/lib/appPaths';
 
 const AuthContext = createContext(null);
 
@@ -64,12 +65,12 @@ export function AuthProvider({ children }) {
   const logout = useCallback(async (shouldRedirect = true) => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-    if (shouldRedirect) window.location.assign('/');
+    if (shouldRedirect) window.location.assign(appUrl('/'));
   }, []);
 
   const navigateToLogin = useCallback(() => {
-    const returnTo = `${window.location.pathname}${window.location.search}`;
-    window.location.assign(`/login?returnTo=${encodeURIComponent(returnTo)}`);
+    const returnTo = `${stripBase(window.location.pathname)}${window.location.search}`;
+    window.location.assign(appUrl(`/login?returnTo=${encodeURIComponent(returnTo)}`));
   }, []);
 
   const checkUserAuth = useCallback(async () => {

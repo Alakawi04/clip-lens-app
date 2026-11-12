@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Coins, Check, Loader2, UserCheck, UserX } from 'lucide-react';
-import { backend } from '@/api/supabaseClient';
+import { backend, supabase } from '@/api/supabaseClient';
 import { useI18n } from '@/lib/i18n';
 import { useSiteSettings } from '@/lib/SiteSettingsContext';
 import { Switch } from '@/components/ui/switch';
@@ -12,18 +12,21 @@ export default function AdminBilling({ draft, set }) {
   const { settings } = useSiteSettings();
   const [requests, setRequests] = useState(null);
   const [accounts, setAccounts] = useState(null);
+  const [emails, setEmails] = useState({});
   const [busy, setBusy] = useState('');
   const [savedId, setSavedId] = useState(null);
   const [edits, setEdits] = useState({});
 
   const load = useCallback(async () => {
     try {
-      const [rp, ap] = await Promise.all([
+      const [rp, ap, profiles] = await Promise.all([
         backend.data.UpgradeRequest.filter({ status: 'pending' }, { sort: '-created_date', limit: 50 }),
         backend.data.CreditAccount.filter({}, { sort: '-updated_date', limit: 50 }),
+        supabase.from('profiles').select('user_id,email'),
       ]);
       setRequests(rp.items || []);
       setAccounts(ap.items || []);
+      setEmails(Object.fromEntries((profiles.data || []).map((profile) => [profile.user_id, profile.email])));
     } catch {
       setRequests([]);
       setAccounts([]);
@@ -128,9 +131,10 @@ export default function AdminBilling({ draft, set }) {
           />
         </div>
 
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
-          {numField('credits_cost', 'admin.billing.cost')}
-          {numField('credits_upload_cost', 'admin.billing.uploadCost')}
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {numField('credits_review_cost', 'admin.billing.reviewCost')}
+          {numField('credits_titles_cost', 'admin.billing.titlesCost')}
+          {numField('credits_thumbnail_cost', 'admin.billing.thumbnailCost')}
           {numField('credits_signup', 'admin.billing.signup')}
           {numField('credits_pro_price', 'admin.billing.proPrice')}
           {numField('credits_pro_amount', 'admin.billing.proAmount')}
@@ -149,7 +153,7 @@ export default function AdminBilling({ draft, set }) {
             {requests.map((r) => (
               <li key={r.id} className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card px-4 py-3">
                 <div>
-                  <p className="text-sm font-semibold">{r.created_by || r.user_id}</p>
+                  <p className="text-sm font-semibold">{emails[r.user_id] || r.user_id}</p>
                   <p className="text-xs text-muted-foreground">{t('admin.billing.requestedBy')} · {t('admin.billing.plan.pro')}</p>
                 </div>
                 <div className="flex gap-2">
@@ -184,7 +188,7 @@ export default function AdminBilling({ draft, set }) {
               const dirty = plan !== (acc.plan ?? 'free') || balance !== (acc.balance ?? 0);
               return (
                 <div key={acc.id} className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card px-4 py-3">
-                  <p className="min-w-0 flex-1 truncate text-sm font-semibold">{acc.created_by || acc.user_id}</p>
+                  <p className="min-w-0 flex-1 truncate text-sm font-semibold">{emails[acc.user_id] || acc.user_id}</p>
                   <select
                     value={plan}
                     onChange={(ev) => setEdits((p) => ({ ...p, [acc.id]: { ...p[acc.id], plan: ev.target.value } }))}

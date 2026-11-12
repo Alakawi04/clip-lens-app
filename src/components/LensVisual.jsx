@@ -243,6 +243,7 @@ export default function LensVisual({ className = '', size = 360 }) {
                         rx="7"
                         pathLength="100"
                         strokeDasharray="14 86"
+                        initial={false}
                         animate={reduce || !isInView ? { strokeDashoffset: 0 } : { strokeDashoffset: [0, -100] }}
                         transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
                       />
@@ -255,6 +256,7 @@ export default function LensVisual({ className = '', size = 360 }) {
                         rx="7"
                         pathLength="100"
                         strokeDasharray="14 86"
+                        initial={false}
                         animate={reduce || !isInView ? { strokeDashoffset: 50 } : { strokeDashoffset: [50, -50] }}
                         transition={{ duration: 2.8, repeat: Infinity, ease: 'linear' }}
                       />
@@ -265,7 +267,7 @@ export default function LensVisual({ className = '', size = 360 }) {
             );
           })}
 
-          {/* Floating AI-review chip */}
+          {/* Floating review chip */}
           <motion.div
             className="lens-floating-chip lens-floating-chip--review absolute end-[15%] top-[9%] z-50 flex items-center gap-2 rounded-2xl border border-border bg-card/85 px-3 py-2 backdrop-blur-xl"
             animate={hovered

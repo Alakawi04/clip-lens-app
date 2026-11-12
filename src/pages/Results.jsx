@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Download, Sparkles, ArrowLeft, Lightbulb, ImageDown, ImageOff, CircleAlert, X, Loader2, Type } from 'lucide-react';
+import { Download, Sparkles, ArrowLeft, Lightbulb, ImageOff, CircleAlert, X, Loader2, Type, Image as ImageIcon, BarChart3 } from 'lucide-react';
 import { backend, invokeFunction } from '@/api/supabaseClient';
 import ScoreRing from '@/components/ScoreRing';
 import TitleList from '@/components/results/TitleList';
@@ -10,7 +10,10 @@ import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/
 import { useI18n } from '@/lib/i18n';
 import { getAnalysisReferenceImage } from '@/lib/videoFrames';
 import { waitForManusTask } from '@/lib/manusTasks';
+import { createPerformanceFallback } from '@/lib/performanceFallback';
 import PolicyLinks from '@/components/PolicyLinks';
+import { useCredits } from '@/lib/CreditContext';
+import { useSiteSettings } from '@/lib/SiteSettingsContext';
 
 async function downloadImage(url, filename) {
   const response = await fetch(url, { mode: 'cors' });
@@ -29,6 +32,7 @@ async function downloadImage(url, filename) {
 }
 
 function sectionFailureText(reason, t, fallbackKey) {
+  if (reason === 'insufficient_credits') return t('tools.credit.insufficient');
   if (reason === 'manus_api_not_configured') return t('results.manusNotConfigured');
   if (reason === 'manus_status_not_configured') return t('results.manusBackendNotConfigured');
   if (reason === 'manus_unauthorized' || reason === 'manus_unauthenticated' || reason === 'manus_invalid_api_key') return t('results.manusAuthFailed');
@@ -61,6 +65,8 @@ export default function Results() {
   const navigate = useNavigate();
   const location = useLocation();
   const { t, lang } = useI18n();
+  const { spendTool } = useCredits();
+  const { settings } = useSiteSettings();
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
   const [downloadError, setDownloadError] = useState(false);
@@ -100,28 +106,41 @@ export default function Results() {
   }, [id, navigate, location.state]);
 
   const stats = record?.youtube_stats;
-  const sections = stats?.analysis_sections || {};
+  const performanceFallback = createPerformanceFallback(stats || {}, lang);
+  const storedSections = stats?.analysis_sections || {};
+  const sections = record?.status === 'completed' && record.source_type === 'youtube'
+    ? { ...storedSections, performance: { ...storedSections.performance, status: 'ready', reason: '' } }
+    : storedSections;
   const generateThumbnail = useCallback(async () => {
     if (!record || generatingThumbnail) return;
     setGeneratingThumbnail(true);
     setThumbnailError('');
+    const isPendingRequest = record.youtube_stats?.analysis_sections?.thumbnailImage?.status === 'pending';
+    const creditRequestId = isPendingRequest && record.youtube_stats?.thumbnail_request_id
+      ? record.youtube_stats.thumbnail_request_id
+      : crypto.randomUUID();
     try {
+      const billing = await spendTool(id, 'thumbnail', creditRequestId);
+      if (!billing?.ok) throw Object.assign(new Error('insufficient_credits'), { code: 'insufficient_credits' });
       const referenceImage = await getAnalysisReferenceImage(id).catch((referenceError) => {
         console.warn('Could not prepare local video reference frames:', referenceError);
         return null;
       });
       const response = await invokeFunction('generateThumbnail', {
         analysisId: id,
+        creditRequestId,
         prompt: thumbnailPrompt.trim().slice(0, 2400),
         ...(referenceImage ? { referenceImage } : {}),
       });
       if (typeof response?.data?.taskId !== 'string') throw new Error('manus_thumbnail_task_create_failed');
       const completion = await waitForManusTask(id, 'thumbnail');
-      const generatedUrl = typeof completion?.url === 'string' ? completion.url : '';
-      if (!generatedUrl) throw new Error('manus_thumbnail_image_missing');
+      const rawGeneratedUrl = typeof completion?.url === 'string' ? completion.url : '';
+      if (!rawGeneratedUrl) throw new Error('manus_thumbnail_image_missing');
+      const generatedUrl = rawGeneratedUrl;
       const nextStats = {
         ...(record.youtube_stats || {}),
         generated_thumbnail_url: generatedUrl,
+        thumbnail_request_id: creditRequestId,
         manus_thumbnail_task_id: response.data.taskId,
         manus_thumbnail_task_signature: response.data.taskSignature,
         manus_thumbnail_result_task_id: response.data.taskId,
@@ -131,6 +150,11 @@ export default function Results() {
           thumbnailImage: { status: 'ready', reason: '' },
         },
       };
+      try {
+        await backend.data.Analysis.update(id, { youtube_stats: nextStats });
+      } catch (saveError) {
+        console.warn('Could not save the generated thumbnail result:', saveError);
+      }
       setRecord((current) => ({ ...current, youtube_stats: nextStats }));
     } catch (error) {
       let code = '';
@@ -144,9 +168,15 @@ export default function Results() {
       }
       if (!code && typeof error?.message === 'string') code = error.message;
       setThumbnailError(code);
+      try {
+        await invokeFunction('refundToolCredit', { analysisId: id, requestId: creditRequestId });
+      } catch (refundError) {
+        console.warn('Could not refund the failed thumbnail credit:', refundError);
+      }
       const nextStats = {
         ...(record.youtube_stats || {}),
         thumbnail_generation_error: code || 'manus_thumbnail_generation_failed',
+        thumbnail_request_id: creditRequestId,
         analysis_sections: {
           ...sections,
           thumbnailImage: { status: 'failed', reason: code || 'manus_thumbnail_generation_failed' },
@@ -162,7 +192,7 @@ export default function Results() {
     } finally {
       setGeneratingThumbnail(false);
     }
-  }, [generatingThumbnail, id, record, sections, thumbnailPrompt]);
+  }, [generatingThumbnail, id, record, sections, spendTool, thumbnailPrompt]);
 
   useEffect(() => {
     if (
@@ -213,6 +243,119 @@ export default function Results() {
   const fmtNum = (n) => typeof n === 'number' ? new Intl.NumberFormat(locale).format(n) : String(n);
   const fmtDur = (s) => `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, '0')}`;
   const withUnit = (value, unit) => value === 'NA' ? value : `${value}${unit}`;
+  const storedPerformanceScore = Number.isFinite(stats?.performance_score)
+    ? Math.max(0, Math.min(100, Math.round(stats.performance_score)))
+    : Number.isFinite(record.performance_score) ? Math.max(0, Math.min(100, Math.round(record.performance_score))) : null;
+  const performanceScore = storedPerformanceScore ?? (record.source_type === 'youtube' ? performanceFallback.score : null);
+  const performanceConfidence = ['high', 'medium', 'low'].includes(stats?.performance_confidence)
+    ? stats.performance_confidence
+    : performanceFallback.confidence;
+  const metricAssessments = Array.isArray(stats?.metric_assessments) && stats.metric_assessments.length
+    ? stats.metric_assessments
+    : performanceFallback.metrics;
+  const declineCauses = Array.isArray(stats?.view_decline_causes) && stats.view_decline_causes.length
+    ? stats.view_decline_causes
+    : performanceFallback.causes;
+  const titleThumbnailAnalysis = stats?.title_thumbnail_analysis || record.title_thumbnail_analysis || null;
+  const creatorProblem = typeof stats?.creator_problem === 'string' ? stats.creator_problem.trim() : '';
+  const creatorProblemResponse = typeof stats?.creator_problem_response === 'string'
+    ? stats.creator_problem_response.trim()
+    : typeof record.creator_problem_response === 'string' ? record.creator_problem_response.trim() : '';
+  const performanceSummary = typeof stats?.performance_summary === 'string'
+    ? stats.performance_summary.trim() || performanceFallback.summary
+    : typeof record.performance_summary === 'string' ? record.performance_summary.trim() || performanceFallback.summary : performanceFallback.summary;
+  const performanceInputs = [
+    [t('results.likes'), stats?.likes],
+    [t('results.comments'), stats?.comments],
+    [t('results.channel'), stats?.channel],
+    [t('results.published'), stats?.published_at ? new Date(stats.published_at).toLocaleDateString(locale) : ''],
+    [t('results.performance.videoDuration'), stats?.video_duration],
+    [t('results.extra.videoAge'), stats?.video_age_days != null
+      ? typeof stats.video_age_days === 'number'
+        ? `${fmtNum(stats.video_age_days)} ${t('results.extra.days')}`
+        : t(`add.link.extra.option.${stats.video_age_days}`)
+      : null],
+    [t('results.extra.trafficSources'), Array.isArray(stats?.traffic_sources) ? stats.traffic_sources : null],
+    [t('results.extra.contentType'), stats?.content_type],
+    [t('results.extra.audience'), stats?.target_audience],
+    [t('results.extra.retention'), stats?.retention_percentage != null ? withUnit(typeof stats.retention_percentage === 'number' ? stats.retention_percentage.toFixed(1) : stats.retention_percentage, '%') : null],
+    [t('results.extra.previousViews'), stats?.previous_views],
+    [t('results.extra.previousCtr'), stats?.previous_ctr != null ? withUnit(typeof stats.previous_ctr === 'number' ? stats.previous_ctr.toFixed(1) : stats.previous_ctr, '%') : null],
+  ].filter(([, value]) => value !== null && value !== undefined && value !== '' && (!Array.isArray(value) || value.length));
+  const displayPerformanceInput = (label, value) => {
+    const translateOption = (option) => {
+      const key = `add.link.extra.option.${option}`;
+      const translated = t(key);
+      return translated === key ? option : translated;
+    };
+    if (Array.isArray(value)) return value.map(translateOption).join(lang === 'ar' ? '، ' : ' · ');
+    if (typeof value === 'number') {
+      if (label === t('results.performance.videoDuration')) return fmtDur(value);
+      return fmtNum(value);
+    }
+    if ([t('results.extra.contentType'), t('results.extra.audience'), t('results.extra.videoAge')].includes(label)) return translateOption(value);
+    return value;
+  };
+
+  const openToolPath = (nextTool) => `/analyze/${nextTool}?analysisId=${id}`;
+  const thumbnailCost = settings?.credits_enabled ? Number(settings.credits_thumbnail_cost ?? 3) : null;
+
+  if (stats?.tool_mode === 'titles') {
+    return (
+      <main className="mx-auto max-w-4xl px-4 pb-10 pt-8 sm:px-6 lg:pb-14 lg:pt-12">
+        <header className="mb-6">
+          <button onClick={() => navigate('/')} className="inline-flex h-10 items-center gap-2 rounded-full border border-border/70 bg-card/60 px-4 text-sm font-semibold text-muted-foreground transition hover:text-foreground"><ArrowLeft className="h-4 w-4 rtl:rotate-180" />{t('common.back')}</button>
+          <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-primary">ClipLens · {t('tools.titles.title')}</p>
+          <h1 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-4xl">{record.source_label || t('tools.titles.title')}</h1>
+        </header>
+        <section className="glass-panel rounded-3xl border border-border/70 p-5 shadow-soft sm:p-7">
+          <h2 className="font-display text-lg font-bold">{t('results.titleTool.description')}</h2>
+          <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed text-foreground/85" dir="auto">{stats.generated_video_description || stats.video_description || t('results.titleTool.descriptionUnavailable')}</p>
+        </section>
+        <section className="glass-panel mt-4 rounded-3xl border border-border/70 p-5 shadow-soft sm:p-7">
+          <h2 className="font-display text-lg font-bold">{t('tools.titles.title')}</h2>
+          {titles.length ? <div className="mt-3"><TitleList titles={titles} /></div> : <SectionFailure reason={sections.titles?.reason} fallbackKey="results.failure.titles" t={t} />}
+        </section>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <Link to={openToolPath('thumbnail')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:brightness-110"><ImageIcon className="h-4 w-4" />{t('results.titleTool.makeThumbnail')}</Link>
+          <Link to={openToolPath('review')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold transition hover:bg-secondary"><BarChart3 className="h-4 w-4" />{t('results.titleTool.evaluate')}</Link>
+        </div>
+        <PolicyLinks className="mt-6 border-t border-border/50 pt-4" />
+      </main>
+    );
+  }
+
+  if (stats?.tool_mode === 'thumbnail') {
+    return (
+      <main className="mx-auto max-w-4xl px-4 pb-10 pt-8 sm:px-6 lg:pb-14 lg:pt-12">
+        <header className="mb-6">
+          <button onClick={() => navigate('/')} className="inline-flex h-10 items-center gap-2 rounded-full border border-border/70 bg-card/60 px-4 text-sm font-semibold text-muted-foreground transition hover:text-foreground"><ArrowLeft className="h-4 w-4 rtl:rotate-180" />{t('common.back')}</button>
+          <p className="mt-6 text-xs font-bold uppercase tracking-[0.18em] text-primary">ClipLens · {t('tools.thumbnail.title')}</p>
+          <h1 className="mt-2 font-display text-2xl font-extrabold tracking-tight sm:text-4xl">{record.source_label || t('tools.thumbnail.title')}</h1>
+        </header>
+        <section className="glass-panel overflow-hidden rounded-3xl border border-border/70 shadow-soft">
+          <div className="relative aspect-video bg-muted/50">
+            {hasGeneratedThumbnail ? <img src={stats.generated_thumbnail_url} alt={t('results.thumbnailTitle')} className="h-full w-full object-cover" /> : <div className="grid h-full place-items-center p-5 text-center text-sm text-muted-foreground">{generatingThumbnail ? <Loader2 className="h-8 w-8 animate-spin text-primary" /> : thumbnailFailed ? sectionFailureText(thumbnailFailure, t, 'results.failure.thumbnailImage') : t('results.thumbnailGenerating')}</div>}
+          </div>
+          <div className="p-5 sm:p-7">
+            <label htmlFor="thumbnail-prompt" className="text-xs font-semibold text-muted-foreground">{t('results.thumbnailPrompt')}</label>
+            <textarea id="thumbnail-prompt" value={thumbnailPrompt} onChange={(event) => setThumbnailPrompt(event.target.value.slice(0, 2400))} rows={4} maxLength={2400} className="mt-2 w-full resize-y rounded-xl border border-border bg-background/70 px-3.5 py-3 text-sm leading-relaxed outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/15" />
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" onClick={generateThumbnail} disabled={generatingThumbnail} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition hover:brightness-110 disabled:opacity-60">{generatingThumbnail ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}{generatingThumbnail ? t('results.thumbnailGenerating') : t(hasGeneratedThumbnail ? 'results.regenerateThumb' : 'results.generateThumb')}{thumbnailCost !== null && <span className="rounded-full bg-black/15 px-2 py-0.5 text-xs">{thumbnailCost} {t('pricing.credits')}</span>}</button>
+              {hasGeneratedThumbnail && <button type="button" onClick={async () => { try { await downloadImage(stats.generated_thumbnail_url, 'cliplens-thumbnail'); } catch { setDownloadError(true); } }} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-border bg-background/50 px-4 py-2.5 text-sm font-semibold"><Download className="h-4 w-4" />{t('results.downloadThumb')}</button>}
+            </div>
+            {thumbnailError && <p role="alert" className="mt-3 text-sm text-destructive">{sectionFailureText(thumbnailError, t, 'results.thumbnailGenerationError')}</p>}
+            {downloadError && <p role="alert" className="mt-3 text-sm text-destructive">{t('results.thumbnailDownloadError')}</p>}
+          </div>
+        </section>
+        <div className="mt-5 grid gap-3 sm:grid-cols-2">
+          <Link to={openToolPath('titles')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground shadow-soft transition hover:brightness-110"><Type className="h-4 w-4" />{t('results.titleTool.makeTitles')}</Link>
+          <Link to={openToolPath('review')} className="inline-flex min-h-12 items-center justify-center gap-2 rounded-full border border-border bg-card px-5 py-3 text-sm font-semibold transition hover:bg-secondary"><BarChart3 className="h-4 w-4" />{t('results.titleTool.evaluate')}</Link>
+        </div>
+        <PolicyLinks className="mt-6 border-t border-border/50 pt-4" />
+      </main>
+    );
+  }
   return (
     <main className="mx-auto max-w-6xl px-4 pb-10 pt-8 sm:px-6 lg:pb-14 lg:pt-12">
       <header className="mb-6 sm:mb-8">
@@ -253,6 +396,89 @@ export default function Results() {
               <p className="mt-1 text-sm font-bold tabular-nums sm:text-base">{value}</p>
             </div>
           ))}
+        </section>
+      )}
+
+      {record.source_type === 'youtube' && (
+        <section className="glass-panel mb-5 rounded-3xl border border-border/70 p-4 shadow-soft sm:p-6" aria-labelledby="performance-review-title">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-primary/10 text-primary"><CircleAlert className="h-5 w-5" /></span>
+              <div className="min-w-0">
+                <h2 id="performance-review-title" className="font-display text-lg font-bold sm:text-xl">{t('results.performance.title')}</h2>
+                {performanceScore !== null && <p className="mt-1 text-xs text-muted-foreground">{t('results.performance.confidence')}: {t(`results.performance.confidence.${performanceConfidence}`)}</p>}
+              </div>
+            </div>
+            {performanceScore !== null && <ScoreRing score={performanceScore} size={82} stroke={7} label={t('results.performance.score')} />}
+          </div>
+
+          {performanceScore === null ? (
+            <p className="mt-4 rounded-2xl border border-border/60 bg-background/30 p-4 text-sm leading-relaxed text-muted-foreground">
+              {sections.performance ? t('results.performance.unavailable') : t('results.performance.oldReport')}
+            </p>
+          ) : (
+            <>
+              {performanceSummary && <div className="mt-4 rounded-2xl border border-border/60 bg-background/35 p-4">
+                <h3 className="text-sm font-semibold">{t('results.performance.summary')}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-foreground/85">{performanceSummary}</p>
+              </div>}
+
+              {performanceInputs.length > 0 && <div className="mt-4">
+                <h3 className="mb-2 text-xs font-semibold text-muted-foreground">{t('results.performance.inputs')}</h3>
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                  {performanceInputs.map(([label, value]) => <div key={label} className="min-w-0 rounded-xl border border-border/60 bg-background/30 px-3 py-2">
+                    <p className="text-[10px] text-muted-foreground">{label}</p>
+                    <p className="mt-0.5 break-words text-xs font-semibold">{displayPerformanceInput(label, value)}</p>
+                  </div>)}
+                </div>
+              </div>}
+
+              <div className="mt-4 grid gap-3 lg:grid-cols-2">
+                <div className="rounded-2xl border border-border/60 bg-background/25 p-4">
+                  <h3 className="text-sm font-semibold">{t('results.performance.metrics')}</h3>
+                  {metricAssessments.length ? <ul className="mt-2 space-y-2">
+                    {metricAssessments.slice(0, 6).map((item, index) => <li key={`${item.metric}-${index}`} className="rounded-xl border border-border/50 bg-card/45 p-3">
+                      <p className="text-xs font-bold">{item.metric}</p>
+                      <p className="mt-1 text-xs leading-relaxed text-foreground/85">{item.assessment}</p>
+                      <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">{item.evidence}</p>
+                    </li>)}
+                  </ul> : <p className="mt-2 text-xs text-muted-foreground">{t('results.performance.unavailable')}</p>}
+                </div>
+
+                <div className="rounded-2xl border border-border/60 bg-background/25 p-4">
+                  <h3 className="text-sm font-semibold">{t('results.performance.causes')}</h3>
+                  {declineCauses.length ? <ul className="mt-2 space-y-2">
+                    {declineCauses.slice(0, 4).map((item, index) => <li key={`${item.cause}-${index}`} className="rounded-xl border border-border/50 bg-card/45 p-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <p className="text-xs font-bold">{item.cause}</p>
+                        {['high', 'medium', 'low'].includes(item.confidence) && <span className="rounded-full bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground">{t(`results.performance.confidence.${item.confidence}`)}</span>}
+                      </div>
+                      <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{item.evidence}</p>
+                    </li>)}
+                  </ul> : <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{t('results.performance.noCauses')}</p>}
+                </div>
+
+                {titleThumbnailAnalysis && <div className="rounded-2xl border border-border/60 bg-background/25 p-4 lg:col-span-2">
+                  <h3 className="text-sm font-semibold">{t('results.performance.titleThumbnail')}</h3>
+                  {stats?.video_title && <p className="mt-3 text-xs"><span className="font-semibold text-muted-foreground">{t('results.performance.originalTitle')}: </span><span dir="auto">{stats.video_title}</span></p>}
+                  <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                    {titleThumbnailAnalysis.title_assessment && <p className="text-xs leading-relaxed"><span className="font-semibold">{t('results.performance.titleAssessment')}: </span>{titleThumbnailAnalysis.title_assessment}</p>}
+                    {titleThumbnailAnalysis.thumbnail_assessment && <p className="text-xs leading-relaxed"><span className="font-semibold">{t('results.performance.originalThumbnail')}: </span>{titleThumbnailAnalysis.thumbnail_assessment}</p>}
+                    {titleThumbnailAnalysis.promise_match && <p className="text-xs leading-relaxed sm:col-span-2"><span className="font-semibold">{t('results.performance.promiseMatch')}: </span>{titleThumbnailAnalysis.promise_match}</p>}
+                  </div>
+                </div>}
+
+                {creatorProblem && <div className="rounded-2xl border border-primary/20 bg-primary/[0.04] p-4 lg:col-span-2">
+                  <h3 className="text-sm font-semibold">{t('results.performance.problem')}</h3>
+                  <p className="mt-2 whitespace-pre-wrap text-xs leading-relaxed text-muted-foreground" dir="auto">{creatorProblem}</p>
+                  {creatorProblemResponse && <div className="mt-3 border-t border-border/60 pt-3">
+                    <h4 className="text-xs font-bold text-primary">{t('results.performance.problemResponse')}</h4>
+                    <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed" dir="auto">{creatorProblemResponse}</p>
+                  </div>}
+                </div>}
+              </div>
+            </>
+          )}
         </section>
       )}
 
@@ -413,6 +639,17 @@ export default function Results() {
         </section>
       </div>
 
+      {record.source_type === 'youtube' && <section className="mt-5 grid gap-3 sm:grid-cols-2" aria-label={t('results.nextTools')}>
+        <Link to={openToolPath('titles')} className="glass-panel flex min-h-24 items-center gap-3 rounded-2xl border border-border/70 p-4 transition hover:border-primary/40 hover:bg-primary/[0.04]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><Type className="h-5 w-5" /></span>
+          <span><b className="block text-sm">{t('results.titleTool.makeTitles')}</b><small className="mt-1 block text-xs text-muted-foreground">{t('results.titleTool.makeTitlesHint')}</small></span>
+        </Link>
+        <Link to={openToolPath('thumbnail')} className="glass-panel flex min-h-24 items-center gap-3 rounded-2xl border border-border/70 p-4 transition hover:border-primary/40 hover:bg-primary/[0.04]">
+          <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary"><ImageIcon className="h-5 w-5" /></span>
+          <span><b className="block text-sm">{t('results.titleTool.makeThumbnail')}</b><small className="mt-1 block text-xs text-muted-foreground">{t('results.titleTool.makeThumbnailHint')}</small></span>
+        </Link>
+      </section>}
+
       <div className="mt-6 flex flex-col gap-3 border-t border-border/60 pt-5 sm:flex-row sm:items-center sm:justify-between">
         {record.status === 'failed' && (
           <Link to={`/progress/${id}`} className="inline-flex items-center justify-center gap-2 rounded-full border border-border bg-card px-6 py-3.5 text-sm font-semibold transition-all hover:bg-secondary active:scale-95">
@@ -420,18 +657,11 @@ export default function Results() {
           </Link>
         )}
         <Link
-          to="/analyze"
+          to="/analyze/review"
           className="inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3.5 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 active:scale-95"
         >
           <Sparkles className="h-4 w-4" />
           {t('results.another')}
-        </Link>
-        <Link
-          to="/history"
-          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-xs font-semibold transition-all hover:bg-secondary active:scale-95 sm:text-sm"
-        >
-          <ImageDown className="h-4 w-4" />
-          {t('nav.history')}
         </Link>
       </div>
       <PolicyLinks className="mt-6 border-t border-border/50 pt-4" />

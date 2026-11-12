@@ -13,6 +13,41 @@ type AnalysisRow = {
   youtube_stats: Record<string, unknown> | null;
 };
 
+function cleanProgressText(value: unknown) {
+  if (typeof value !== 'string') return '';
+  const text = value
+    .replace(/https?:\/\/\S+/gi, '')
+    .replace(/\b[\w.+-]+@[\w.-]+\.[a-z]{2,}\b/gi, '')
+    .replace(/[`*_#>]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!text || /\b(manus|claude|anthropic|openai|gemini|chatgpt|gpt(?:-[\w.]+)?|api|endpoint|external provider|third.party service)\b/i.test(text)) return '';
+  if (/\b(chain of thought|private reasoning|system prompt|tool call|internal reasoning|let me think|i think)\b/i.test(text)) return '';
+  return text.slice(0, 280);
+}
+
+function collectProgressActivity(events: Array<Record<string, any>>) {
+  const activity: Array<{ id: string; timestamp: number | null; text: string }> = [];
+  const seen = new Set<string>();
+  for (const event of [...events].reverse()) {
+    let raw = '';
+    if (event.type === 'status_update') {
+      raw = event.status_update?.brief || event.status_update?.description || '';
+    } else if (event.type === 'assistant_message' && event.assistant_message?.delivery_kind === 'progress') {
+      raw = event.assistant_message?.content || '';
+    }
+    const text = cleanProgressText(raw);
+    if (!text || seen.has(text)) continue;
+    seen.add(text);
+    activity.push({
+      id: typeof event.id === 'string' ? event.id : String(event.timestamp || activity.length),
+      timestamp: typeof event.timestamp === 'number' ? event.timestamp : null,
+      text,
+    });
+  }
+  return activity.slice(-4);
+}
+
 function jsonResponse(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify(body), {
     status,
@@ -189,11 +224,12 @@ Deno.serve(async (request) => {
     const taskStatus = detail?.task?.status;
     const messages = await listManusMessages(manusApiKey, taskId);
     const events = Array.isArray(messages?.messages) ? messages.messages : [];
+    const activity = collectProgressActivity(events);
 
     if (kind === 'analysis') {
       const structured = events.find((event: Record<string, any>) => event.type === 'structured_output_result');
       if (structured?.structured_output_result?.success === true && structured.structured_output_result.value && typeof structured.structured_output_result.value === 'object') {
-        return jsonResponse({ state: 'complete', result: structured.structured_output_result.value });
+        return jsonResponse({ state: 'complete', result: structured.structured_output_result.value, activity });
       }
       if (structured?.structured_output_result?.success === false) {
         return jsonResponse({ state: 'failed', error: 'manus_structured_result_failed' });
@@ -214,7 +250,7 @@ Deno.serve(async (request) => {
           downloaded.image,
           downloaded.contentType,
         );
-        return jsonResponse({ state: 'complete', url: imageUrl });
+        return jsonResponse({ state: 'complete', url: imageUrl, activity });
       }
     }
 
@@ -225,7 +261,7 @@ Deno.serve(async (request) => {
       const stoppedForMs = updatedAt ? Date.now() - (updatedAt < 1_000_000_000_000 ? updatedAt * 1000 : updatedAt) : 0;
       if (stoppedForMs > 120000) return jsonResponse({ state: 'failed', error: 'manus_task_result_missing' });
     }
-    return jsonResponse({ state: 'running', taskStatus: typeof taskStatus === 'string' ? taskStatus : 'running' });
+    return jsonResponse({ state: 'running', taskStatus: typeof taskStatus === 'string' ? taskStatus : 'running', activity });
   } catch (error) {
     if (error instanceof ManusApiError) {
       console.error('Manus task status check failed', { code: error.code, status: error.status });

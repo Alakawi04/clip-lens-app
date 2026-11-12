@@ -57,6 +57,9 @@ create table if not exists public.site_settings (
   credits_signup numeric,
   credits_pro_price numeric,
   credits_pro_amount numeric,
+  credits_review_cost numeric not null default 2,
+  credits_titles_cost numeric not null default 1,
+  credits_thumbnail_cost numeric not null default 3,
   particles_style text not null default 'neural',
   particle_count integer not null default 120,
   particle_size numeric not null default 1.55,
@@ -65,6 +68,9 @@ create table if not exists public.site_settings (
 
 alter table public.site_settings
   add column if not exists credits_upload_cost numeric not null default 2,
+  add column if not exists credits_review_cost numeric not null default 2,
+  add column if not exists credits_titles_cost numeric not null default 1,
+  add column if not exists credits_thumbnail_cost numeric not null default 3,
   add column if not exists particles_style text not null default 'neural',
   add column if not exists particle_count integer not null default 120,
   add column if not exists particle_size numeric not null default 1.55;
@@ -108,6 +114,94 @@ create table if not exists public.credit_transactions (
   api_started boolean not null default false,
   created_date timestamptz not null default now()
 );
+
+create table if not exists public.credit_tool_transactions (
+  request_id uuid primary key,
+  analysis_id uuid not null references public.analyses(id) on delete cascade,
+  user_id uuid not null references auth.users(id) on delete cascade,
+  tool text not null check (tool in ('review', 'titles', 'thumbnail')),
+  amount numeric not null check (amount >= 0),
+  created_date timestamptz not null default now(),
+  refunded_at timestamptz
+);
+
+alter table public.credit_tool_transactions enable row level security;
+revoke all on public.credit_tool_transactions from anon, authenticated;
+grant select on public.credit_tool_transactions to authenticated;
+drop policy if exists "Users read own tool credit transactions" on public.credit_tool_transactions;
+create policy "Users read own tool credit transactions"
+  on public.credit_tool_transactions for select to authenticated
+  using (user_id = (select auth.uid()));
+
+create or replace function public.consume_tool_credit(
+  p_analysis_id uuid,
+  p_tool text,
+  p_request_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_owned boolean;
+  v_enabled boolean;
+  v_cost numeric;
+  v_balance numeric;
+  v_history jsonb;
+  v_existing public.credit_tool_transactions%rowtype;
+begin
+  if v_user_id is null then raise exception 'Authentication required' using errcode = '28000'; end if;
+  if p_analysis_id is null or p_request_id is null or p_tool is null or p_tool not in ('review', 'titles', 'thumbnail') then
+    raise exception 'Invalid tool credit request' using errcode = '22023';
+  end if;
+  select exists (
+    select 1 from public.analyses where id = p_analysis_id and user_id = v_user_id and source_type = 'youtube'
+  ) into v_owned;
+  if not v_owned then raise exception 'Analysis not found' using errcode = '42501'; end if;
+
+  insert into public.credit_accounts (user_id, balance, history) values (v_user_id, 0, '[]'::jsonb)
+    on conflict (user_id) do nothing;
+  select balance, history into v_balance, v_history from public.credit_accounts where user_id = v_user_id for update;
+  select * into v_existing from public.credit_tool_transactions where request_id = p_request_id for update;
+  if found then
+    if v_existing.user_id <> v_user_id or v_existing.analysis_id <> p_analysis_id or v_existing.tool <> p_tool then
+      raise exception 'Credit request id was already used' using errcode = '22023';
+    end if;
+    return jsonb_build_object('ok', true, 'already_charged', true, 'balance', v_balance, 'charged', v_existing.amount);
+  end if;
+
+  select coalesce(credits_enabled, true), case p_tool
+    when 'review' then coalesce(credits_review_cost, 2)
+    when 'titles' then coalesce(credits_titles_cost, 1)
+    when 'thumbnail' then coalesce(credits_thumbnail_cost, 3)
+  end into v_enabled, v_cost from public.site_settings where singleton = true;
+  v_enabled := coalesce(v_enabled, true);
+  v_cost := greatest(coalesce(v_cost, case p_tool when 'review' then 2 when 'titles' then 1 else 3 end), 0);
+  if not v_enabled then v_cost := 0; end if;
+  if v_balance < v_cost then
+    return jsonb_build_object('ok', false, 'reason', 'insufficient', 'balance', v_balance, 'required', v_cost);
+  end if;
+
+  update public.credit_accounts set balance = v_balance - v_cost,
+    history = case when v_cost > 0 then (
+      select coalesce(jsonb_agg(entry order by ordinal), '[]'::jsonb)
+      from jsonb_array_elements(coalesce(v_history, '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+        'change', -v_cost, 'reason', 'tool_' || p_tool, 'tool', p_tool,
+        'analysis_id', p_analysis_id, 'request_id', p_request_id, 'date', now()
+      ))) with ordinality as items(entry, ordinal)
+      where ordinal > jsonb_array_length(coalesce(v_history, '[]'::jsonb) || jsonb_build_array('{}'::jsonb)) - 50
+    ) else coalesce(v_history, '[]'::jsonb) end, updated_date = now()
+    where user_id = v_user_id returning balance into v_balance;
+  insert into public.credit_tool_transactions (request_id, analysis_id, user_id, tool, amount)
+    values (p_request_id, p_analysis_id, v_user_id, p_tool, v_cost);
+  return jsonb_build_object('ok', true, 'balance', v_balance, 'charged', v_cost);
+end;
+$$;
+
+revoke all on function public.consume_tool_credit(uuid, text, uuid) from public, anon;
+grant execute on function public.consume_tool_credit(uuid, text, uuid) to authenticated;
 alter table public.credit_transactions add column if not exists api_started boolean not null default false;
 
 create table if not exists public.stripe_subscriptions (
@@ -450,18 +544,20 @@ drop policy if exists "Users read their profile; admins read all" on public.prof
 create policy "Users read their profile; admins read all" on public.profiles for select to authenticated
   using (user_id = (select auth.uid()) or (select public.is_admin()));
 drop policy if exists "Users read own analyses; admins read all" on public.analyses;
-create policy "Users read own analyses; admins read all" on public.analyses for select to authenticated
-  using (user_id = (select auth.uid()) or (select public.is_admin()));
+drop policy if exists "Users read own analyses" on public.analyses;
+create policy "Users read own analyses" on public.analyses for select to authenticated
+  using (user_id = (select auth.uid()));
 drop policy if exists "Users create own analyses" on public.analyses;
 create policy "Users create own analyses" on public.analyses for insert to authenticated
   with check (user_id = (select auth.uid()));
 drop policy if exists "Users update own analyses; admins update all" on public.analyses;
-create policy "Users update own analyses; admins update all" on public.analyses for update to authenticated
-  using (user_id = (select auth.uid()) or (select public.is_admin()))
-  with check (user_id = (select auth.uid()) or (select public.is_admin()));
+drop policy if exists "Users update own analyses" on public.analyses;
+create policy "Users update own analyses" on public.analyses for update to authenticated
+  using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 drop policy if exists "Users delete own analyses; admins delete all" on public.analyses;
-create policy "Users delete own analyses; admins delete all" on public.analyses for delete to authenticated
-  using (user_id = (select auth.uid()) or (select public.is_admin()));
+drop policy if exists "Users delete own analyses" on public.analyses;
+create policy "Users delete own analyses" on public.analyses for delete to authenticated
+  using (user_id = (select auth.uid()));
 drop policy if exists "Anyone can read site settings" on public.site_settings;
 create policy "Anyone can read site settings" on public.site_settings for select to anon, authenticated using (true);
 drop policy if exists "Admins manage site settings" on public.site_settings;
@@ -510,5 +606,155 @@ begin
   end if;
 end;
 $$;
+
+create or replace function public.refund_tool_credit(
+  p_analysis_id uuid,
+  p_request_id uuid
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_transaction public.credit_tool_transactions%rowtype;
+  v_balance numeric;
+  v_history jsonb;
+begin
+  if v_user_id is null then
+    raise exception 'Authentication required' using errcode = '28000';
+  end if;
+  if p_analysis_id is null or p_request_id is null then
+    raise exception 'Invalid refund request' using errcode = '22023';
+  end if;
+
+  select * into v_transaction
+    from public.credit_tool_transactions
+    where request_id = p_request_id
+      and analysis_id = p_analysis_id
+      and user_id = v_user_id
+    for update;
+
+  if not found then
+    return jsonb_build_object('ok', false, 'reason', 'not_charged');
+  end if;
+  if v_transaction.refunded_at is not null then
+    return jsonb_build_object('ok', true, 'already_refunded', true);
+  end if;
+
+  if v_transaction.amount <= 0 then
+    update public.credit_tool_transactions
+      set refunded_at = now()
+      where request_id = p_request_id;
+    return jsonb_build_object('ok', true, 'refunded', 0);
+  end if;
+
+  select balance, history into v_balance, v_history
+    from public.credit_accounts
+    where user_id = v_user_id
+    for update;
+
+  update public.credit_accounts
+    set balance = v_balance + v_transaction.amount,
+        history = (
+          select coalesce(jsonb_agg(entry order by ordinal), '[]'::jsonb)
+          from jsonb_array_elements(
+            coalesce(v_history, '[]'::jsonb) || jsonb_build_array(jsonb_build_object(
+              'change', v_transaction.amount,
+              'reason', 'refund_tool_' || v_transaction.tool,
+              'tool', v_transaction.tool,
+              'analysis_id', p_analysis_id,
+              'request_id', p_request_id,
+              'date', now()
+            ))
+          ) with ordinality as items(entry, ordinal)
+          where ordinal > jsonb_array_length(coalesce(v_history, '[]'::jsonb) || jsonb_build_array('{}'::jsonb)) - 50
+        ),
+        updated_date = now()
+    where user_id = v_user_id
+    returning balance into v_balance;
+
+  update public.credit_tool_transactions
+    set refunded_at = now()
+    where request_id = p_request_id;
+
+  return jsonb_build_object('ok', true, 'balance', v_balance, 'refunded', v_transaction.amount);
+end;
+$$;
+
+revoke all on function public.refund_tool_credit(uuid, uuid) from public, anon;
+grant execute on function public.refund_tool_credit(uuid, uuid) to authenticated;
+
+create or replace function public.admin_analysis_overview()
+returns jsonb
+language plpgsql
+stable
+security definer
+set search_path = ''
+as $$
+declare
+  v_by_status jsonb;
+  v_by_source jsonb;
+  v_recent jsonb;
+begin
+  if not public.is_admin() then
+    raise exception 'Administrator access required' using errcode = '42501';
+  end if;
+
+  select coalesce(jsonb_agg(
+      jsonb_build_object('status', grouped.status, 'count', grouped.count, 'avg_score', grouped.avg_score)
+      order by grouped.status
+    ), '[]'::jsonb)
+    into v_by_status
+    from (
+      select status, count(*)::int as count, round(avg(score)::numeric, 2) as avg_score
+      from public.analyses
+      group by status
+    ) as grouped;
+
+  select coalesce(jsonb_agg(
+      jsonb_build_object('source_type', grouped.source_type, 'count', grouped.count)
+      order by grouped.source_type
+    ), '[]'::jsonb)
+    into v_by_source
+    from (
+      select source_type, count(*)::int as count
+      from public.analyses
+      group by source_type
+    ) as grouped;
+
+  select coalesce(jsonb_agg(row_to_json(recent_rows)), '[]'::jsonb)
+    into v_recent
+    from (
+      select source_label, source_type, status, score, created_date
+      from public.analyses
+      order by created_date desc
+      limit 8
+    ) as recent_rows;
+
+  return jsonb_build_object(
+    'by_status', v_by_status,
+    'by_source', v_by_source,
+    'recent', v_recent
+  );
+end;
+$$;
+
+revoke all on function public.admin_analysis_overview() from public, anon;
+grant execute on function public.admin_analysis_overview() to authenticated;
+
+grant update, delete on storage.objects to authenticated;
+
+drop policy if exists "Admins can update assets" on storage.objects;
+create policy "Admins can update assets"
+  on storage.objects for update to authenticated
+  using (bucket_id = 'public-assets' and (select public.is_admin()))
+  with check (bucket_id = 'public-assets' and (select public.is_admin()));
+
+drop policy if exists "Admins can delete assets" on storage.objects;
+create policy "Admins can delete assets"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'public-assets' and (select public.is_admin()));
 
 commit;

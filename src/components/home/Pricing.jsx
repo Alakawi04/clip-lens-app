@@ -52,8 +52,9 @@ export default function Pricing() {
 
   const freeFeatures = [
     <><b>{settings.credits_signup}</b> {t('pricing.signupCredits')}</>,
-    <>{settings.credits_cost} {Number(settings.credits_cost) === 1 ? t('pricing.credit') : t('pricing.credits')} {t('pricing.perLinkAnalysis')}</>,
-    <>{settings.credits_upload_cost} {Number(settings.credits_upload_cost) === 1 ? t('pricing.credit') : t('pricing.credits')} {t('pricing.perUploadAnalysis')}</>,
+    <>{settings.credits_review_cost} {Number(settings.credits_review_cost) === 1 ? t('pricing.credit') : t('pricing.credits')} {t('pricing.perVideoReview')}</>,
+    <>{settings.credits_titles_cost} {Number(settings.credits_titles_cost) === 1 ? t('pricing.credit') : t('pricing.credits')} {t('pricing.perTitleTool')}</>,
+    <>{settings.credits_thumbnail_cost} {Number(settings.credits_thumbnail_cost) === 1 ? t('pricing.credit') : t('pricing.credits')} {t('pricing.perThumbnail')}</>,
     t('pricing.free.f1'),
     t('pricing.free.f2'),
     t('pricing.free.f3'),

@@ -4,7 +4,6 @@ import ToolCards from '@/components/home/ToolCards';
 import Steps from '@/components/home/Steps';
 import BeforeAfter from '@/components/home/BeforeAfter';
 import Pricing from '@/components/home/Pricing';
-import RecentAnalyses from '@/components/home/RecentAnalyses';
 import SampleThumbnails from '@/components/home/SampleThumbnails';
 
 export default function Home() {
@@ -16,7 +15,6 @@ export default function Home() {
       <Steps />
       <BeforeAfter />
       <Pricing />
-      <RecentAnalyses />
     </div>
   );
 }

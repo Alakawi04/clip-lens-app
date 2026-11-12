@@ -3,7 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import { Activity, CheckCircle2, Gauge, Link2, Upload } from 'lucide-react';
-import { backend } from '@/api/supabaseClient';
+import { supabase } from '@/api/supabaseClient';
 import StatCard from '@/components/admin/StatCard';
 import StatusBadge from '@/components/StatusBadge';
 import { useI18n } from '@/lib/i18n';
@@ -13,22 +13,24 @@ const STATUSES = ['uploading', 'scenes', 'titles', 'preparing', 'completed', 'fa
 export default function AdminOverview() {
   const { t } = useI18n();
   const [data, setData] = useState(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let active = true;
     (async () => {
-      const [statusAgg, sourceAgg, recent] = await Promise.all([
-        backend.data.Analysis.aggregate({ groupBy: 'status', avg: 'score' }),
-        backend.data.Analysis.aggregate({ groupBy: 'source_type' }),
-        backend.data.Analysis.filter(
-          {},
-          { sort: '-created_date', limit: 8, fields: ['source_label', 'source_type', 'status', 'score', 'created_date'] }
-        ),
-      ]);
+      // Analysis rows are private to their owner, so the dashboard reads a
+      // reduced, admin-only summary through a security-definer RPC.
+      const { data: overview, error: overviewError } = await supabase.rpc('admin_analysis_overview');
       if (!active) return;
+      if (overviewError) {
+        console.error('Could not load the admin overview:', overviewError);
+        setError(true);
+        return;
+      }
 
-      const statusRows = statusAgg?.rows || [];
-      const sourceRows = sourceAgg?.rows || [];
+      const statusRows = Array.isArray(overview?.by_status) ? overview.by_status : [];
+      const sourceRows = Array.isArray(overview?.by_source) ? overview.by_source : [];
+      const recentRows = Array.isArray(overview?.recent) ? overview.recent : [];
       const byStatus = {};
       statusRows.forEach((r) => { byStatus[r.status] = r; });
 
@@ -49,11 +51,19 @@ export default function AdminOverview() {
           { name: t('recent.type.youtube'), value: youtube },
           { name: t('recent.type.upload'), value: upload },
         ].filter((d) => d.value > 0),
-        recent: recent.items || [],
+        recent: recentRows,
       });
     })();
     return () => { active = false; };
   }, [t]);
+
+  if (error) {
+    return (
+      <div className="glass-panel rounded-3xl border border-border px-6 py-16 text-center text-sm text-muted-foreground">
+        {t('admin.overviewError')}
+      </div>
+    );
+  }
 
   if (!data) {
     return (

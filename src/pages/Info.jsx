@@ -11,22 +11,19 @@ const CONTENT = {
       intro: 'A clear guide to what ClipLens uses, what it saves, and what you can remove.',
       sections: [
         { h: 'Information saved with an analysis', p: [
-          'Your account email is used for sign-in. For each analysis, ClipLens saves its source (file name or YouTube link), the results, status, date, and any context, transcript, or YouTube Studio numbers you entered so you can reopen the report from History.',
-        ] },
-        { h: 'When you upload an MP4', p: [
-          'The full video file is read in your browser. ClipLens samples six still frames; the MP4 itself is not uploaded by the analysis form. Those frames, your optional context, and any transcript you provide are sent to Manus for analysis. The sampled frames stay in this browser for up to 24 hours to support retries and thumbnail generation, then expire automatically.',
+          'Your account email is used for sign-in. ClipLens saves your YouTube link, tool inputs, generated results, status, and date in your account. The review, title, and thumbnail tools reuse one record for the same video. Row-level access controls keep analysis records visible only to their owner. Open History from your profile menu.',
         ] },
         { h: 'When you review a YouTube link', p: [
-          'ClipLens sends the YouTube URL, its public thumbnail, the YouTube Studio metrics, and any context, transcript, or optional images you provide to Manus. Manus attempts to inspect the public video and transcript; access can vary by video. ClipLens does not publish changes to your channel.',
+          'ClipLens sends the YouTube URL, its public thumbnail, the YouTube Studio metrics, and any context, creator problem description, or optional images you provide to Manus. Manus attempts to inspect the public video and transcript; access can vary by video. ClipLens does not publish changes to your channel.',
         ] },
         { h: 'Thumbnail generation and storage', p: [
           'Manus generates requested thumbnails. Temporary frame references are sent to Manus and removed from temporary storage after processing. Generated thumbnails are saved in public image storage; anyone with the image URL may be able to view them.',
         ] },
         { h: 'Third-party services', p: [
-          'ClipLens uses Supabase for sign-in, analysis records, and storage. Manus is the AI service used for video analysis, title suggestions, and thumbnail generation. Information needed for these tasks is sent to Manus and is subject to its privacy terms.',
+          'ClipLens uses Supabase for sign-in, analysis records, and storage. Manus is the analysis service used for video analysis, title suggestions, and thumbnail generation. Information needed for these tasks is sent to Manus and is subject to its privacy terms.',
         ] },
         { h: 'Your choices and deletion', p: [
-          'You can remove an analysis from History. This removes its report from your account and clears the saved video frames from this browser. A generated thumbnail is a separate public image file and may remain available at its URL after the report is deleted. Avoid submitting confidential or sensitive material.',
+          'You can remove an analysis from History in your profile. This removes its report from your account. A generated thumbnail is a separate public image file and may remain available at its URL after the report is deleted. Avoid submitting confidential or sensitive material.',
         ] },
       ],
     },
@@ -36,16 +33,16 @@ const CONTENT = {
       intro: 'Please use ClipLens with content and information you are allowed to share.',
       sections: [
         { h: 'What ClipLens does', p: [
-          'ClipLens analyzes supplied video frames, public video information, and details you enter. Its scores, explanations, title ideas, and thumbnail directions are suggestions to help with your decisions, not professional advice or a promise of performance.',
+          'ClipLens analyzes public YouTube videos and details you enter. Its scores, explanations, title ideas, and thumbnails are suggestions to help with your decisions, not professional advice or a promise of performance.',
         ] },
         { h: 'Your content and permissions', p: [
-          'You keep ownership of the content you provide. You must have the rights and permissions needed to analyze or submit that content, including any images, transcripts, and YouTube Studio data. Do not upload material that violates another person’s rights or privacy.',
+          'You keep ownership of the content you provide. You must have the rights and permissions needed to analyze a YouTube video or submit reference images and YouTube Studio data. Do not submit material that violates another person’s rights or privacy.',
         ] },
         { h: 'Use accurate information', p: [
-          'You are responsible for the context, transcript, and performance metrics you enter. ClipLens may not be able to verify private Studio metrics, and its analysis can be limited by the frames and information available.',
+          'You are responsible for the context and performance metrics you enter. ClipLens may not be able to verify private Studio metrics, and its analysis can be limited by the information available.',
         ] },
         { h: 'Credits and thumbnail generation', p: [
-          'Analyses and thumbnail generation may use ClipLens credits and Manus account usage. The current ClipLens cost is shown before you start. Thumbnail generation can fail if Manus is not configured, has no available usage, or is busy.',
+          'Analyses and thumbnail generation may use ClipLens credits and processing capacity. The current ClipLens cost is shown before you start. Thumbnail generation can fail if the service is not configured, has no available usage, or is busy.',
         ] },
         { h: 'No promised results', p: [
           'ClipLens cannot guarantee views, clicks, watch time, audience growth, or the accuracy of every generated suggestion. You decide whether to use, edit, or publish any recommendation.',
@@ -60,26 +57,23 @@ const CONTENT = {
       title: 'Help',
       intro: 'Follow these steps to get a useful report and find it again later.',
       sections: [
-        { h: '1. Choose how to start', p: [
-          'Open Analyze Video. Choose Upload MP4 for a file on your device, or Paste YouTube link to review a public video.',
+        { h: '1. Choose a YouTube tool', p: [
+          'Use the navigation bar to open Video evaluation, Title & description, or Thumbnail. Each tool accepts a public YouTube link and has its own fields.',
         ] },
-        { h: '2. Upload an MP4', p: [
-          'Choose an MP4 up to 500 MB and 30 minutes. Wait while ClipLens checks the video and samples six frames. Add a short description of the video idea and, if you want feedback on spoken content, paste a transcript. Choose the language for the suggested titles, then start the analysis.',
+        { h: '2. Review a YouTube video', p: [
+          'For Video evaluation, paste a public YouTube link and add any impressions, click-through rate, views, average view duration, video duration, traffic sources, or comparable channel metrics you have from YouTube Studio. Leave unknown values blank; the report will state when its evidence is limited.',
         ] },
-        { h: '3. Review a YouTube video', p: [
-          'Paste a public YouTube link. Manus attempts to inspect the video and transcript from that URL. Choose the title language, then enter any requested impressions, click-through rate, views, average view duration, video duration, and traffic sources from YouTube Studio. Use NA only when a value is unavailable. Add optional screenshots or context if they help explain the results.',
+        { h: '3. Read your report', p: [
+          'Each completed tool is saved to your private History. Open it from your profile menu. The same video link reuses its existing record, so the next tool adds its result without creating another history entry.',
         ] },
-        { h: '4. Read your report', p: [
-          'The finished report is saved in History. Open it to see the score, explanation, recommendations, title ideas, and thumbnail guidance. For MP4 uploads, the score is based on the video idea, any transcript, and six sampled frames; it does not evaluate audio when no transcript is supplied.',
-        ] },
-        { h: '5. Generate or download a thumbnail', p: [
-          'Use Generate another version on the report to ask Manus for a new thumbnail. You can download the result from the same panel.',
+        { h: '4. Generate or download a thumbnail', p: [
+          'Use the Thumbnail tool to describe the style, add optional reference images, and create a new image. You can download the result from its results page.',
         ] },
         { h: 'Find or delete a past analysis', p: [
-          'Open History to revisit an analysis or remove its report. Deleting it also clears the locally saved video frames for that analysis. Generated thumbnail files are stored separately and may remain accessible by their image URL.',
+          'Open the account menu in the profile area of the navigation bar and choose History to revisit or delete a report. Generated thumbnail files are stored separately and may remain accessible by their image URL.',
         ] },
         { h: 'If something fails', p: [
-          'Check your connection and make sure the file, link, and required fields are valid. If a report shows a failed step, use Retry on that screen. Thumbnail generation requires the Manus key to be set in Supabase and available usage on your Manus account.',
+          'Check your connection and make sure the video link and required fields are valid. If a report shows a failed step, use Retry on that screen. Thumbnail generation may be temporarily unavailable when the image service is not configured or busy.',
         ] },
       ],
     },
@@ -91,13 +85,10 @@ const CONTENT = {
       intro: 'شرح واضح لما يستخدمه ClipLens وما يحفظه والبيانات التي يمكنك حذفها.',
       sections: [
         { h: 'المعلومات المحفوظة مع التحليل', p: [
-          'يُستخدم بريد حسابك لتسجيل الدخول. ويحفظ ClipLens مع كل تحليل مصدره، مثل اسم الملف أو رابط يوتيوب، والنتائج والحالة والتاريخ، إضافة إلى السياق أو التفريغ النصي أو أرقام YouTube Studio التي أدخلتها، حتى تتمكن من فتح التقرير من السجل.',
-        ] },
-        { h: 'عند رفع ملف MP4', p: [
-          'يُقرأ ملف الفيديو الكامل داخل متصفحك. يختار ClipLens ست لقطات ثابتة ولا يرفع ملف MP4 نفسه. تُرسل هذه اللقطات وسياق الفيديو وأي تفريغ نصي تضيفه إلى Manus للتحليل. تبقى اللقطات في هذا المتصفح حتى 24 ساعة لإتاحة إعادة المحاولة وتوليد الصورة المصغّرة، ثم تنتهي صلاحيتها تلقائيًا.',
+          'يُستخدم بريد حسابك لتسجيل الدخول. ويحفظ ClipLens رابط يوتيوب ومدخلات الأدوات والنتائج والحالة والتاريخ في حسابك. تستخدم أدوات التقييم والعنوان والصورة سجلًا واحدًا للرابط نفسه. تمنع صلاحيات قاعدة البيانات المستخدمين الآخرين من رؤية سجلاتك. افتح السجل من قائمة الملف الشخصي.',
         ] },
         { h: 'عند مراجعة رابط يوتيوب', p: [
-          'يرسل ClipLens رابط يوتيوب وصورته المصغّرة العامة وإحصاءات YouTube Studio والسياق أو النص أو الصور الاختيارية التي تضيفها إلى Manus. يحاول Manus فحص الفيديو العام وتفريغه النصي، وقد يختلف الوصول حسب الفيديو. لا ينشر ClipLens أي تغييرات على قناتك.',
+          'يرسل ClipLens رابط يوتيوب وصورته المصغّرة العامة وإحصاءات YouTube Studio والسياق ووصف المشكلة أو الصور الاختيارية التي تضيفها إلى Manus. يحاول Manus فحص الفيديو العام وتفريغه النصي، وقد يختلف الوصول حسب الفيديو. لا ينشر ClipLens أي تغييرات على قناتك.',
         ] },
         { h: 'توليد الصور المصغّرة وحفظها', p: [
           'يولّد Manus الصور المصغّرة المطلوبة. تُرسل إليه صور الإطارات المرجعية ثم تُحذف من التخزين المؤقت بعد المعالجة. تُحفظ الصور المولّدة في مساحة صور عامة، لذلك قد يتمكن أي شخص لديه رابط الصورة من مشاهدتها.',
@@ -106,7 +97,7 @@ const CONTENT = {
           'يستخدم ClipLens خدمة Supabase لتسجيل الدخول وسجلات التحليل والتخزين. ويستخدم Manus وحده لتحليل الفيديو واقتراح العناوين وتوليد الصور. تُرسل المعلومات اللازمة لهذه المهام إلى Manus وتخضع لسياسة الخصوصية الخاصة به.',
         ] },
         { h: 'خياراتك وحذف البيانات', p: [
-          'يمكنك حذف التحليل من صفحة السجل، وهذا يزيل تقريره من حسابك ويمسح لقطات الفيديو المحفوظة محليًا في هذا المتصفح. أما الصورة المصغّرة المولّدة فهي ملف عام مستقل وقد يبقى رابطها متاحًا بعد حذف التقرير. تجنّب إدخال معلومات سرية أو حساسة.',
+          'يمكنك حذف التحليل من السجل الموجود في قائمة الملف الشخصي. يزيل ذلك التقرير من حسابك. أما الصورة المصغّرة فهي ملف عام مستقل وقد يبقى رابطها متاحًا بعد حذف التقرير. تجنّب إدخال معلومات سرية أو حساسة.',
         ] },
       ],
     },
@@ -116,16 +107,16 @@ const CONTENT = {
       intro: 'استخدم ClipLens فقط مع المحتوى والمعلومات التي يحق لك مشاركتها.',
       sections: [
         { h: 'ما الذي يقدمه ClipLens', p: [
-          'يحلل ClipLens لقطات الفيديو والمعلومات العامة وملاحظاتك. الدرجات والتفسيرات وأفكار العناوين وتوجيهات الصور اقتراحات تساعدك على اتخاذ القرار، وليست استشارة مهنية أو وعدًا بتحقيق نتائج.',
+          'يحلل ClipLens فيديوهات يوتيوب العامة وملاحظاتك. الدرجات والتفسيرات وأفكار العناوين والصور المصغّرة اقتراحات تساعدك على اتخاذ القرار، وليست استشارة مهنية أو وعدًا بتحقيق نتائج.',
         ] },
         { h: 'المحتوى والصلاحيات', p: [
-          'تبقى ملكية المحتوى الذي تقدمه لك. عليك امتلاك الحقوق والصلاحيات اللازمة لتحليله أو إرساله، بما في ذلك الصور والتفريغات النصية وبيانات YouTube Studio. لا ترفع محتوى ينتهك حقوق الآخرين أو خصوصيتهم.',
+          'تبقى ملكية المحتوى الذي تقدمه لك. عليك امتلاك الحقوق والصلاحيات اللازمة لمراجعة فيديو يوتيوب أو إرسال الصور المرجعية وبيانات YouTube Studio. لا ترسل محتوى ينتهك حقوق الآخرين أو خصوصيتهم.',
         ] },
         { h: 'أدخل معلومات دقيقة', p: [
-          'أنت مسؤول عن سياق الفيديو والتفريغ النصي ومقاييس الأداء التي تدخلها. قد لا يستطيع ClipLens التحقق من إحصاءات Studio الخاصة، وقد تكون النتيجة محدودة باللقطات والمعلومات المتوفرة.',
+          'أنت مسؤول عن سياق الفيديو ومقاييس الأداء التي تدخلها. قد لا يستطيع ClipLens التحقق من إحصاءات Studio الخاصة، وقد تكون النتيجة محدودة بالمعلومات المتوفرة.',
         ] },
         { h: 'الرصيد وتوليد الصور المصغّرة', p: [
-          'قد تستهلك التحليلات وتوليد الصور رصيد ClipLens واستخدام حساب Manus. تظهر تكلفة ClipLens قبل البدء. وقد يتعذر توليد الصور إذا لم يُضبط مفتاح Manus أو لم يتوفر استخدام في الحساب أو كان Manus مشغولًا.',
+          'قد تستهلك التحليلات وتوليد الصور رصيد ClipLens وسعة المعالجة. تظهر تكلفة ClipLens قبل البدء. وقد يتعذر توليد الصور إذا لم تكن الخدمة مهيأة أو لم تتوفر سعة كافية أو كانت مشغولة.',
         ] },
         { h: 'لا توجد نتائج مضمونة', p: [
           'لا يضمن ClipLens المشاهدات أو النقرات أو مدة المشاهدة أو نمو الجمهور أو دقة كل اقتراح مولّد. أنت تقرر استخدام أي اقتراح أو تعديله أو نشره.',
@@ -140,26 +131,23 @@ const CONTENT = {
       title: 'المساعدة',
       intro: 'اتبع الخطوات لتصل إلى تقرير مفيد وتعود إليه لاحقًا.',
       sections: [
-        { h: '١. اختر طريقة البدء', p: [
-          'افتح «تحليل فيديو». اختر رفع MP4 لملف موجود على جهازك، أو لصق رابط يوتيوب لمراجعة فيديو عام.',
+        { h: '١. اختر أداة يوتيوب', p: [
+          'استخدم شريط التنقل لفتح تقييم الفيديو أو العنوان والوصف أو الصورة المصغّرة. تقبل كل أداة رابط يوتيوب عامًا ولها حقولها الخاصة.',
         ] },
-        { h: '٢. ارفع ملف MP4', p: [
-          'اختر ملف MP4 لا يتجاوز حجمه 500 ميغابايت ومدته 30 دقيقة. انتظر حتى يفحصه ClipLens ويختار ست لقطات. أضف وصفًا قصيرًا لفكرة الفيديو، وإذا أردت تقييم الكلام المنطوق فأضف تفريغًا نصيًا. اختر لغة العناوين المقترحة ثم ابدأ التحليل.',
+        { h: '٢. راجع فيديو يوتيوب', p: [
+          'في تقييم الفيديو، الصق رابطًا عامًا وأدخل ما يتوفر لديك من مرات الظهور ونسبة النقر والمشاهدات ومتوسط مدة المشاهدة ومدة الفيديو ومصادر الزيارات ومقاييس فيديوهات قناتك المشابهة من YouTube Studio. اترك ما لا تعرفه فارغًا؛ وسيوضح التقرير حدود الأدلة المتاحة.',
         ] },
-        { h: '٣. راجع فيديو يوتيوب', p: [
-          'الصق رابط يوتيوب عام. يحاول Manus فحص الفيديو والتفريغ النصي انطلاقًا من الرابط. اختر لغة العناوين، ثم أدخل أي قيم مطلوبة لمرات الظهور ونسبة النقر والمشاهدات ومتوسط مدة المشاهدة ومدة الفيديو ومصادر الزيارات كما تظهر في YouTube Studio. اكتب NA فقط إذا تعذّر توفير قيمة. ويمكنك إضافة لقطات شاشة أو سياق اختياريًا.',
+        { h: '٣. اقرأ التقرير', p: [
+          'يُحفظ كل عمل في سجل خاص واحد للفيديو. افتحه من قائمة الملف الشخصي. عند استخدام الرابط نفسه في أداة أخرى، تُضاف النتيجة إلى السجل نفسه بلا إدخال نسخة جديدة.',
         ] },
-        { h: '٤. اقرأ التقرير', p: [
-          'يُحفظ التقرير المكتمل في السجل. افتحه لرؤية الدرجة وشرحها والتوصيات وأفكار العناوين وتوجيه الصورة المصغّرة. في ملفات MP4 تعتمد الدرجة على فكرة الفيديو والتفريغ النصي إن أضفته واللقطات الست؛ ولا يقيّم النظام الصوت عند عدم إضافة تفريغ.',
-        ] },
-        { h: '٥. ولّد صورة مصغّرة أو نزّلها', p: [
-          'استخدم «توليد نسخة أخرى» من التقرير لطلب صورة جديدة من Manus. يمكنك تنزيل الصورة من اللوحة نفسها.',
+        { h: '٤. ولّد صورة مصغّرة أو نزّلها', p: [
+          'استخدم أداة الصورة المصغّرة لوصف الأسلوب وإضافة صور مرجعية اختيارية وإنشاء صورة جديدة، ثم حمّل النتيجة من صفحة النتائج.',
         ] },
         { h: 'العثور على تحليل سابق أو حذفه', p: [
-          'افتح السجل للعودة إلى تحليل أو لحذف تقريره. يؤدي الحذف أيضًا إلى مسح لقطات الفيديو المحفوظة محليًا لهذا التحليل. تُحفظ الصور المولّدة كملفات مستقلة وقد تظل متاحة عبر رابطها.',
+          'افتح قائمة الملف الشخصي في شريط التنقل ثم اختر السجل للعودة إلى تقرير أو حذفه. تُحفظ الصور المولّدة كملفات مستقلة وقد تظل متاحة عبر رابطها.',
         ] },
         { h: 'إذا تعذّر إكمال خطوة', p: [
-          'تحقق من اتصالك وصحة الملف أو الرابط والحقول المطلوبة. إذا ظهرت مرحلة فاشلة في التقرير، استخدم زر إعادة المحاولة. يحتاج توليد الصور إلى إضافة مفتاح Manus في Supabase وتوفر استخدام في حساب Manus.',
+          'تحقق من اتصالك وصحة رابط الفيديو والحقول المطلوبة. إذا ظهرت مرحلة فاشلة في التقرير، استخدم زر إعادة المحاولة. قد يتوقف توليد الصور مؤقتًا إذا لم تكن خدمة الصور مهيأة أو كانت مشغولة.',
         ] },
       ],
     },

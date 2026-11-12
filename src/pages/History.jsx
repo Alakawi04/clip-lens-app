@@ -102,7 +102,7 @@ export default function History() {
           </span>
           <p className="mt-4 max-w-sm text-sm text-muted-foreground">{t('history.empty')}</p>
           <Link
-            to="/analyze"
+            to="/analyze/review"
             className="mt-5 inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-soft transition-all hover:brightness-110 active:scale-95"
           >
             <Sparkles className="h-4 w-4" />

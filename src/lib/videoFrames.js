@@ -1,7 +1,6 @@
 const DATABASE_NAME = 'cliplens-local-media';
 const STORE_NAME = 'analysis-frames';
 const FRAME_RETENTION_MS = 24 * 60 * 60 * 1000;
-const MAX_FRAME_COUNT = 6;
 const MAX_FRAME_BYTES = 800_000;
 const MAX_REFERENCE_IMAGE_BYTES = 900_000;
 
@@ -191,101 +190,3 @@ export async function getInlineAnalysisFrames(analysisId) {
   }));
 }
 
-export function readVideoDuration(file) {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const video = document.createElement('video');
-    const timeout = setTimeout(() => finish(new Error('video_unreadable')), 15000);
-    const finish = (error, duration) => {
-      clearTimeout(timeout);
-      video.onloadedmetadata = null;
-      video.onerror = null;
-      URL.revokeObjectURL(url);
-      video.removeAttribute('src');
-      video.load();
-      if (error) reject(error);
-      else resolve(duration);
-    };
-    video.preload = 'metadata';
-    video.onloadedmetadata = () => {
-      const duration = video.duration;
-      if (!Number.isFinite(duration) || duration <= 0) finish(new Error('video_unreadable'));
-      else finish(null, duration);
-    };
-    video.onerror = () => finish(new Error('video_unreadable'));
-    video.src = url;
-  });
-}
-
-/** @param {File} file @param {(progress: number) => void} [onProgress] */
-export async function extractVideoFrames(file, onProgress = () => {}) {
-  const url = URL.createObjectURL(file);
-  const video = document.createElement('video');
-  video.preload = 'auto';
-  video.muted = true;
-  video.playsInline = true;
-
-  const waitForEvent = (eventName, errorName = 'frame_extraction_failed') => new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => finish(new Error(errorName)), 20000);
-    const finish = (error) => {
-      clearTimeout(timeout);
-      video.removeEventListener(eventName, onSuccess);
-      video.removeEventListener('error', onError);
-      if (error) reject(error);
-      else resolve();
-    };
-    const onSuccess = () => finish();
-    const onError = () => finish(new Error(errorName));
-    video.addEventListener(eventName, onSuccess, { once: true });
-    video.addEventListener('error', onError, { once: true });
-  });
-
-  const capture = (canvas) => new Promise((resolve, reject) => {
-    canvas.toBlob((blob) => {
-      if (!blob || blob.size > MAX_FRAME_BYTES) {
-        reject(new Error('frame_extraction_failed'));
-        return;
-      }
-      resolve(blob);
-    }, 'image/jpeg', 0.72);
-  });
-
-  try {
-    const metadataLoaded = waitForEvent('loadedmetadata', 'video_unreadable');
-    video.src = url;
-    await metadataLoaded;
-    if (!Number.isFinite(video.duration) || video.duration <= 0 || !video.videoWidth || !video.videoHeight) {
-      throw new Error('video_unreadable');
-    }
-    if (video.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
-      await waitForEvent('loadeddata', 'video_unreadable');
-    }
-
-    const scale = Math.min(1, 1024 / Math.max(video.videoWidth, video.videoHeight));
-    const canvas = document.createElement('canvas');
-    canvas.width = Math.max(1, Math.round(video.videoWidth * scale));
-    canvas.height = Math.max(1, Math.round(video.videoHeight * scale));
-    const context = canvas.getContext('2d', { alpha: false });
-    if (!context) throw new Error('frame_extraction_failed');
-
-    const frames = [];
-    for (let index = 0; index < MAX_FRAME_COUNT; index += 1) {
-      const fraction = MAX_FRAME_COUNT === 1 ? 0.5 : 0.06 + (0.88 * index) / (MAX_FRAME_COUNT - 1);
-      const time = Math.max(0, Math.min(Math.max(0, video.duration - 0.001), video.duration * fraction));
-      if (Math.abs(video.currentTime - time) > 0.02) {
-        const seeked = waitForEvent('seeked');
-        video.currentTime = time;
-        await seeked;
-      }
-      context.drawImage(video, 0, 0, canvas.width, canvas.height);
-      frames.push(await capture(canvas));
-      onProgress(Math.round(((index + 1) / MAX_FRAME_COUNT) * 100));
-    }
-    return frames;
-  } finally {
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
-    URL.revokeObjectURL(url);
-  }
-}

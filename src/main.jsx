@@ -13,6 +13,7 @@ function AppBootstrap() {
     let cleanupTimer;
     let minimumTimer;
     let revealFrame;
+    let revealFallbackTimer;
     const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     const reveal = () => {
       if (!active || revealed || !loader.isConnected) return;
@@ -49,7 +50,11 @@ function AppBootstrap() {
       minimumTimer = window.setTimeout(resolve, Math.max(0, minimumDisplayMs - elapsedMs));
     });
     const revealWhenReady = () => {
-      if (active) revealFrame = window.requestAnimationFrame(reveal);
+      if (!active) return;
+      revealFrame = window.requestAnimationFrame(reveal);
+      // requestAnimationFrame is paused in background tabs; reveal anyway so a
+      // loaded app can never stay hidden behind the boot loader.
+      revealFallbackTimer = window.setTimeout(reveal, 400);
     };
     Promise.all([imagesReady, fontsReady, pageResourcesReady, minimumDisplayReady]).then(revealWhenReady, revealWhenReady);
 
@@ -57,6 +62,7 @@ function AppBootstrap() {
       active = false;
       window.clearTimeout(cleanupTimer);
       window.clearTimeout(minimumTimer);
+      window.clearTimeout(revealFallbackTimer);
       if (revealFrame) window.cancelAnimationFrame(revealFrame);
     };
   }, []);

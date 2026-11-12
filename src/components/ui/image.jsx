@@ -52,6 +52,14 @@ const Image = React.forwardRef(
       onError: handleError,
     }
 
+    // React 18 does not recognise the camelCase fetchPriority DOM prop; forward
+    // it as the lowercase HTML attribute so the image is not fetched eagerly
+    // with a React warning (React 19 accepts the camelCase prop directly).
+    if (imageProps.fetchPriority !== undefined) {
+      imageProps.fetchpriority = imageProps.fetchPriority
+      delete imageProps.fetchPriority
+    }
+
     if (!src) {
       return <img ref={ref} src={FALLBACK_IMAGE_URL} {...imageProps} data-empty-image />
     }

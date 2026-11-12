@@ -16,9 +16,9 @@ export default function Footer() {
           <div className="flex flex-col items-center gap-3 text-center sm:items-end sm:text-end">
             <nav className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 text-sm text-muted-foreground">
               <Link to="/" className="hover:text-foreground transition-colors">{t('nav.home')}</Link>
-              <Link to="/analyze" className="hover:text-foreground transition-colors">{t('nav.analyze')}</Link>
-              <Link to="/analyze?mode=review" className="hover:text-foreground transition-colors">{t('nav.review')}</Link>
-              <Link to="/history" className="hover:text-foreground transition-colors">{t('nav.history')}</Link>
+              <Link to="/analyze/review" className="hover:text-foreground transition-colors">{t('tools.nav.review')}</Link>
+              <Link to="/analyze/titles" className="hover:text-foreground transition-colors">{t('tools.nav.titles')}</Link>
+              <Link to="/analyze/thumbnail" className="hover:text-foreground transition-colors">{t('tools.nav.thumbnail')}</Link>
               <span className="hidden h-4 w-px bg-border sm:inline-block" aria-hidden="true" />
               <Link to="/privacy" className="hover:text-foreground transition-colors">{t('footer.privacy')}</Link>
               <Link to="/terms" className="hover:text-foreground transition-colors">{t('footer.terms')}</Link>

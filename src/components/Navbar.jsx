@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion, useReducedMotion, useScroll, useSpring, useTransform } from 'framer-motion';
-import { Home, Sparkles, Search, History as HistoryIcon, Coins } from 'lucide-react';
+import { Home, BarChart3, Type, Image as ImageIcon, Coins, Sparkles } from 'lucide-react';
 import Logo from './Logo';
 import ThemeToggle from './ThemeToggle';
 import AccountMenu from './AccountMenu';
@@ -25,13 +25,13 @@ export default function Navbar() {
   const headerY = useTransform(compactProgress, [0, 1], [0, -2]);
   const labelOpacity = useTransform(compactProgress, [0, 0.28, 0.62], [1, 0.72, 0]);
   const labelMaxWidth = useTransform(compactProgress, [0, 0.7], ['12rem', '0rem']);
-  const { isAuthenticated, isLoadingAuth } = useAuth();
+  const { user, isAuthenticated, isLoadingAuth } = useAuth();
   const { enabled, balance } = useCredits();
   const items = [
     { name: t('nav.home'), to: '/', icon: Home },
-    { name: t('nav.analyze'), to: '/analyze', icon: Sparkles },
-    { name: t('nav.review'), to: '/analyze?mode=review', icon: Search },
-    ...(isAuthenticated ? [{ name: t('nav.history'), to: '/history', icon: HistoryIcon }] : []),
+    { name: t('tools.nav.review'), to: '/analyze/review', icon: BarChart3 },
+    { name: t('tools.nav.titles'), to: '/analyze/titles', icon: Type },
+    { name: t('tools.nav.thumbnail'), to: '/analyze/thumbnail', icon: ImageIcon },
   ];
 
   return (
@@ -97,15 +97,26 @@ export default function Navbar() {
                   className="h-10 w-12 rounded-full border border-white/10 bg-white/[0.04] sm:w-16"
                 />
               ) : enabled && isAuthenticated ? (
-                <Link
-                  to="/admin"
-                  className="navbar-credit-button inline-flex h-10 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.12] px-2.5 text-xs font-bold text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-primary/[0.18] sm:px-3"
-                  aria-label={String(balance)}
-                  title={String(balance)}
-                >
-                  <Coins className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span className="whitespace-nowrap text-[11px] tabular-nums sm:text-xs">{balance}</span>
-                </Link>
+                user?.role === 'admin' ? (
+                  <Link
+                    to="/admin"
+                    className="navbar-credit-button inline-flex h-10 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.12] px-2.5 text-xs font-bold text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-sm transition-colors hover:border-primary/50 hover:bg-primary/[0.18] sm:px-3"
+                    aria-label={String(balance)}
+                    title={String(balance)}
+                  >
+                    <Coins className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="whitespace-nowrap text-[11px] tabular-nums sm:text-xs">{balance}</span>
+                  </Link>
+                ) : (
+                  <span
+                    className="navbar-credit-button inline-flex h-10 items-center gap-1.5 rounded-full border border-primary/30 bg-primary/[0.12] px-2.5 text-xs font-bold text-primary shadow-[inset_0_1px_0_rgba(255,255,255,0.18)] backdrop-blur-sm sm:px-3"
+                    aria-label={String(balance)}
+                    title={String(balance)}
+                  >
+                    <Coins className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="whitespace-nowrap text-[11px] tabular-nums sm:text-xs">{balance}</span>
+                  </span>
+                )
               ) : null}
               <ThemeToggle showLabel labelStyle={{ opacity: labelOpacity, maxWidth: labelMaxWidth }} />
             </div>

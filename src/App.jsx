@@ -1,10 +1,10 @@
 import { lazy, Suspense, useEffect } from 'react';
-import { QueryClientProvider } from '@tanstack/react-query';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ThemeProvider, useTheme } from 'next-themes';
 import { MotionConfig } from 'framer-motion';
 import { Toaster } from '@/components/ui/toaster';
 import AdminRoute from '@/components/AdminRoute';
+import AppErrorBoundary from '@/components/AppErrorBoundary';
 import LanguageTransition from '@/components/LanguageTransition';
 import Layout from '@/components/Layout';
 import PageLoading from '@/components/PageLoading';
@@ -16,7 +16,6 @@ import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import { CreditProvider } from '@/lib/CreditContext';
 import { LanguageProvider } from '@/lib/i18n';
 import PageNotFound from '@/lib/PageNotFound';
-import { queryClientInstance } from '@/lib/query-client';
 import { SiteSettingsProvider, useSiteSettings, saveSiteThemePreference } from '@/lib/SiteSettingsContext';
 import { pruneExpiredAnalysisFrames } from '@/lib/videoFrames';
 import Home from '@/pages/Home';
@@ -91,6 +90,7 @@ function AuthenticatedApp() {
           <Route path="/help" element={lazyPage(<Info kind="help" />)} />
           <Route element={<ProtectedRoute unauthenticatedElement={<RequireLogin />} />}>
             <Route path="/analyze" element={lazyPage(<Analyze />)} />
+            <Route path="/analyze/:tool" element={lazyPage(<Analyze />)} />
             <Route path="/progress/:id" element={lazyPage(<Progress />)} />
             <Route path="/results/:id" element={lazyPage(<Results />)} />
             <Route path="/history" element={lazyPage(<History />)} />
@@ -112,13 +112,13 @@ export default function App() {
   return (
     <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
       <MotionConfig reducedMotion="user">
-        <SiteSettingsProvider>
-          <SiteAppearanceSync />
-          <LanguageProvider>
-            <LanguageTransition />
-            <AuthProvider>
-              <CreditProvider>
-                <QueryClientProvider client={queryClientInstance}>
+        <AppErrorBoundary>
+          <SiteSettingsProvider>
+            <SiteAppearanceSync />
+            <LanguageProvider>
+              <LanguageTransition />
+              <AuthProvider>
+                <CreditProvider>
                   <BrowserRouter basename={import.meta.env.BASE_URL}>
                     <LocalFrameCleanup />
                     <ScrollToTop />
@@ -126,11 +126,11 @@ export default function App() {
                     <AuthenticatedApp />
                   </BrowserRouter>
                   <Toaster />
-                </QueryClientProvider>
-              </CreditProvider>
-            </AuthProvider>
-          </LanguageProvider>
-        </SiteSettingsProvider>
+                </CreditProvider>
+              </AuthProvider>
+            </LanguageProvider>
+          </SiteSettingsProvider>
+        </AppErrorBoundary>
       </MotionConfig>
     </ThemeProvider>
   );

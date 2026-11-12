@@ -8,6 +8,7 @@ import { ArrowRight, Eye, EyeOff, Lock, Mail, Loader2, Sparkles } from "lucide-r
 import GoogleIcon from "@/components/GoogleIcon";
 import AuthExperienceShell from "@/components/auth/AuthExperienceShell";
 import { safeReturnTo } from "@/lib/authReturnTo";
+import { appUrl } from "@/lib/appPaths";
 import { useI18n } from "@/lib/i18n";
 
 export default function Login() {
@@ -29,7 +30,7 @@ export default function Login() {
       setRememberSession(rememberMe);
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
       if (signInError) throw signInError;
-      window.location.href = returnTo;
+      window.location.href = appUrl(returnTo);
     } catch (authError) {
       setError(authError.message || t("auth.error"));
     } finally {
@@ -44,7 +45,7 @@ export default function Login() {
       setRememberSession(rememberMe);
       const { error: signInError } = await supabase.auth.signInWithOAuth({
         provider: "google",
-        options: { redirectTo: `${window.location.origin}${returnTo}` },
+        options: { redirectTo: `${window.location.origin}${appUrl(returnTo)}` },
       });
       if (signInError) throw signInError;
     } catch (authError) {
